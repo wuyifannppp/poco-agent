@@ -1,9 +1,3 @@
-"""Request context middleware to manage request_id / trace_id.
-
-- request_id: 每个请求生成新的，用于本服务内日志关联
-- trace_id: 优先从请求头获取（支持分布式追踪），没有则生成新的
-"""
-
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 

@@ -1,8 +1,3 @@
-"""Request-scoped context (request_id / trace_id) helpers.
-
-This module uses contextvars so values are safe across async requests.
-"""
-
 import uuid
 from contextvars import ContextVar, Token
 

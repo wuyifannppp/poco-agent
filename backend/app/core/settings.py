@@ -5,8 +5,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables."""
-
     app_name: str = Field(default="Toto Backend")
     app_version: str = Field(default="0.1.0")
     debug: bool = Field(default=False)
