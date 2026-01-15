@@ -16,6 +16,13 @@ export type TextBlock = {
   text: string;
 };
 
+export type ToolUseBlock = {
+  _type: "ToolUseBlock";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+};
+
 export type ToolResultBlock = {
   _type: "ToolResultBlock";
   tool_use_id: string;
@@ -23,7 +30,7 @@ export type ToolResultBlock = {
   is_error: boolean;
 };
 
-export type MessageBlock = TextBlock | ToolResultBlock;
+export type MessageBlock = TextBlock | ToolUseBlock | ToolResultBlock;
 
 export type ToolCall = {
   id: string;

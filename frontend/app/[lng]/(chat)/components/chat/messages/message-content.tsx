@@ -9,6 +9,8 @@ import "highlight.js/styles/github-dark.css";
 import { Button } from "@/components/ui/button";
 import { Check, Copy } from "lucide-react";
 import type { MessageBlock } from "@/lib/api-types";
+import type { ToolUseBlock, ToolResultBlock } from "@/lib/types/ui/chat";
+import { ToolChain } from "./tool-chain";
 
 type CodeProps = {
   inline?: boolean;
@@ -76,9 +78,9 @@ export function MessageContent({
     if (typeof content === "string") {
       return content;
     }
-
     // If it's an array of blocks, extract text from TextBlock
     if (Array.isArray(content)) {
+      // This helper is used for copy-paste mainly, so we just want the text parts
       const textBlocks = content.filter(
         (block: MessageBlock) => block._type === "TextBlock",
       );
@@ -88,45 +90,118 @@ export function MessageContent({
         )
         .join("\n\n");
     }
-
     return String(content);
   };
 
   const textContent = getTextContent(content);
 
-  return (
-    <div className="prose prose-sm dark:prose-invert max-w-none break-words w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_*]:break-words">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
-        components={{
-          // Pre block (wrapper for code block)
-          pre: PreBlock,
-          // Code block
-          code: ({ inline, className, children }: CodeProps) => {
-            return !inline ? (
-              <code className={className}>{children}</code>
-            ) : (
-              <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-sm">
+  // If content is string, render as before
+  if (typeof content === "string") {
+    return (
+      <div className="prose prose-sm dark:prose-invert max-w-none break-words w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_*]:break-words">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeHighlight]}
+          components={{
+            pre: PreBlock,
+            code: ({ inline, className, children }: CodeProps) => {
+              return !inline ? (
+                <code className={className}>{children}</code>
+              ) : (
+                <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-sm">
+                  {children}
+                </code>
+              );
+            },
+            a: ({ children, href }: LinkProps) => (
+              <a
+                className="text-foreground underline underline-offset-4 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                href={href}
+              >
                 {children}
-              </code>
-            );
-          },
-          // Links
-          a: ({ children, href }: LinkProps) => (
-            <a
-              className="text-foreground underline underline-offset-4 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
-              target="_blank"
-              rel="noopener noreferrer"
-              href={href}
+              </a>
+            ),
+          }}
+        >
+          {textContent}
+        </ReactMarkdown>
+      </div>
+    );
+  }
+
+  // Handle array of blocks (Tools + Text)
+  // We need to group them: sequence of tool blocks -> ToolChain, sequence of text blocks -> Markdown
+  const groups: { type: "text" | "tool"; blocks: MessageBlock[] }[] = [];
+  let currentGroup: { type: "text" | "tool"; blocks: MessageBlock[] } | null =
+    null;
+
+  for (const block of content) {
+    const isTool =
+      block._type === "ToolUseBlock" || block._type === "ToolResultBlock";
+    const type = isTool ? "tool" : "text";
+
+    if (!currentGroup || currentGroup.type !== type) {
+      currentGroup = { type, blocks: [] };
+      groups.push(currentGroup);
+    }
+    currentGroup.blocks.push(block);
+  }
+
+  return (
+    <div className="space-y-4 w-full min-w-0">
+      {groups.map((group, index) => {
+        if (group.type === "tool") {
+          return (
+            <ToolChain
+              key={index}
+              blocks={group.blocks as (ToolUseBlock | ToolResultBlock)[]}
+            />
+          );
+        } else {
+          const text = group.blocks
+            .map((b) => (b._type === "TextBlock" ? b.text : ""))
+            .join("\n\n");
+          if (!text.trim()) return null;
+
+          return (
+            <div
+              key={index}
+              className="prose prose-sm dark:prose-invert max-w-none break-words w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_*]:break-words"
             >
-              {children}
-            </a>
-          ),
-        }}
-      >
-        {textContent}
-      </ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeHighlight]}
+                components={{
+                  pre: PreBlock,
+                  code: ({ inline, className, children }: CodeProps) => {
+                    return !inline ? (
+                      <code className={className}>{children}</code>
+                    ) : (
+                      <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-sm">
+                        {children}
+                      </code>
+                    );
+                  },
+                  a: ({ children, href }: LinkProps) => (
+                    <a
+                      className="text-foreground underline underline-offset-4 decoration-muted-foreground/30 hover:decoration-foreground transition-colors"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      href={href}
+                    >
+                      {children}
+                    </a>
+                  ),
+                }}
+              >
+                {text}
+              </ReactMarkdown>
+            </div>
+          );
+        }
+      })}
     </div>
   );
 }

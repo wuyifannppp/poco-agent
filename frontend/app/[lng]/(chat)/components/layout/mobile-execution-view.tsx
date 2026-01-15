@@ -57,7 +57,7 @@ export function MobileExecutionView({
                 session={session}
                 statePatch={session?.state_patch}
                 progress={session?.progress}
-                currentStep={session?.state_patch.current_step}
+                currentStep={session?.state_patch.current_step ?? undefined}
                 updateSession={updateSession}
               />
             </div>

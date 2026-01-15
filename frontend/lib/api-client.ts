@@ -30,17 +30,6 @@ export async function fetchApi<T>(
   const url = `${API_BASE_URL}/api/v1${endpoint}`;
   const method = options?.method || "GET";
 
-  // Log API call details
-  console.log(`[API] ${method} ${endpoint}`);
-  if (options?.body) {
-    try {
-      const bodyData = JSON.parse(options.body as string);
-      console.log(`[API] Request Body:`, bodyData);
-    } catch {
-      console.log(`[API] Request Body:`, options.body);
-    }
-  }
-
   try {
     const response = await fetch(url, {
       ...options,
@@ -50,7 +39,7 @@ export async function fetchApi<T>(
       },
     });
 
-    console.log(`[API] Response: ${response.status} ${response.statusText}`);
+    // console.log(`[API] Response: ${response.status} ${response.statusText}`);
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status} ${response.statusText}`);
@@ -58,11 +47,19 @@ export async function fetchApi<T>(
 
     const result: ApiResponse<T> = await response.json();
 
-    console.log(
-      `[API] Response Code: ${result.code}, Message: ${result.message}`,
-    );
     if (result.data) {
-      console.log(`[API] Response Data:`, result.data);
+      // 使用彩色日志增强可读性
+      // 方法名和 endpoint 用蓝色，数据用绿色
+      console.log(
+        `%c[API]%c ${method} ${endpoint}`,
+        "color: #1976d2; font-weight: bold;",
+        "color: inherit;",
+      );
+      console.log(
+        "%c[API] Response Data:",
+        "color: #43a047; font-weight: bold;",
+        result.data,
+      );
     }
 
     if (result.code !== 200 && result.code !== 0) {
@@ -164,6 +161,35 @@ export const sessionApi = {
    */
   getWorkspaceFiles: async (sessionId: string): Promise<FileNode[]> => {
     return fetchApi<FileNode[]>(`/sessions/${sessionId}/workspace/files`);
+  },
+
+  /**
+   * Get workspace files from session state_patch
+   * Alternative method that extracts file_changes from session data
+   */
+  getWorkspaceFilesFromSession: async (
+    sessionId: string,
+  ): Promise<FileNode[]> => {
+    try {
+      const session = await sessionApi.get(sessionId);
+      const fileChanges =
+        session.state_patch?.workspace_state?.file_changes || [];
+
+      // Convert FileChange[] to FileNode[]
+      return fileChanges.map((change) => ({
+        id: change.path,
+        name: change.path.split("/").pop() || change.path,
+        path: change.path,
+        type: "file", // All items in file_changes are files
+        url: sessionApi.getWorkspaceFileUrl(sessionId, change.path),
+      }));
+    } catch (error) {
+      console.error(
+        "[Session API] Failed to get workspace files from session:",
+        error,
+      );
+      return [];
+    }
   },
 
   /**

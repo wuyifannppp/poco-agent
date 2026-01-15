@@ -24,6 +24,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const { t } = useT("translation");
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const isComposing = React.useRef(false);
 
   // Auto-resize textarea
   React.useEffect(() => {
@@ -36,7 +37,7 @@ export function ChatInput({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
-      if (e.nativeEvent.isComposing) {
+      if (e.nativeEvent.isComposing || isComposing.current) {
         return;
       }
       e.preventDefault();
@@ -57,6 +58,12 @@ export function ChatInput({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onCompositionStart={() => (isComposing.current = true)}
+              onCompositionEnd={() => {
+                setTimeout(() => {
+                  isComposing.current = false;
+                }, 0);
+              }}
               placeholder={hasMessages ? "" : t("hero.placeholder")}
               disabled={disabled}
               className="min-h-[60px] max-h-[40vh] w-full resize-none border-0 p-0 text-base shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"

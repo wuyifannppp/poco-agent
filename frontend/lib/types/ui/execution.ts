@@ -2,7 +2,7 @@
  * Execution-related UI types (frontend-specific)
  */
 
-import type { StatePatch as ApiStatePatch } from "../api/callback";
+import type { ApiStatePatch } from "../api/callback";
 
 export type ExecutionStatus = "accepted" | "running" | "completed" | "failed";
 

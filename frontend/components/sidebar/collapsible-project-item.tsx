@@ -18,6 +18,10 @@ interface CollapsibleProjectItemProps {
   onRenameTask?: (taskId: string, newName: string) => void;
   onMoveTaskToProject?: (taskId: string, projectId: string | null) => void;
   allProjects: ProjectItem[];
+  isSelectionMode?: boolean;
+  selectedTaskIds?: Set<string>;
+  onToggleTaskSelection?: (taskId: string) => void;
+  onEnableSelectionMode?: (taskId: string) => void;
 }
 
 /**
@@ -33,6 +37,10 @@ export function CollapsibleProjectItem({
   onRenameTask,
   onMoveTaskToProject,
   allProjects,
+  isSelectionMode,
+  selectedTaskIds,
+  onToggleTaskSelection,
+  onEnableSelectionMode,
 }: CollapsibleProjectItemProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: project.id,
@@ -104,6 +112,10 @@ export function CollapsibleProjectItem({
               onRenameTask={onRenameTask}
               onMoveTaskToProject={onMoveTaskToProject}
               projects={allProjects}
+              isSelectionMode={isSelectionMode}
+              selectedTaskIds={selectedTaskIds}
+              onToggleTaskSelection={onToggleTaskSelection}
+              onEnableSelectionMode={onEnableSelectionMode}
             />
           </div>
         )}

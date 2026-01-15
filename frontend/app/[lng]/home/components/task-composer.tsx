@@ -27,13 +27,16 @@ export function TaskComposer({
   value,
   onChange,
   onSend,
+  isSubmitting,
 }: {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  isSubmitting?: boolean;
 }) {
   const { t } = useT("translation");
+  const isComposing = React.useRef(false);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -42,15 +45,27 @@ export function TaskComposer({
         <Textarea
           ref={textareaRef}
           value={value}
+          disabled={isSubmitting}
           onChange={(e) => onChange(e.target.value)}
+          onCompositionStart={() => (isComposing.current = true)}
+          onCompositionEnd={() => {
+            setTimeout(() => {
+              isComposing.current = false;
+            }, 0);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
+              if (e.nativeEvent.isComposing || isComposing.current) {
+                return;
+              }
               e.preventDefault();
-              onSend();
+              if (!isSubmitting) {
+                onSend();
+              }
             }
           }}
           placeholder={t("hero.placeholder")}
-          className="min-h-[60px] max-h-[40vh] w-full resize-none border-0 bg-transparent dark:bg-transparent p-0 text-base shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0"
+          className="min-h-[60px] max-h-[40vh] w-full resize-none border-0 bg-transparent dark:bg-transparent p-0 text-base shadow-none placeholder:text-muted-foreground/50 focus-visible:ring-0 disabled:opacity-50"
           rows={2}
         />
       </div>
@@ -65,6 +80,7 @@ export function TaskComposer({
                 type="button"
                 variant="ghost"
                 size="icon"
+                disabled={isSubmitting}
                 className="size-9 rounded-xl hover:bg-accent"
                 title={t("hero.attachFile")}
               >
@@ -88,6 +104,7 @@ export function TaskComposer({
                 type="button"
                 variant="ghost"
                 size="icon"
+                disabled={isSubmitting}
                 className="size-9 rounded-xl hover:bg-accent"
                 title={t("hero.tools")}
               >
@@ -123,6 +140,7 @@ export function TaskComposer({
             type="button"
             variant="ghost"
             size="icon"
+            disabled={isSubmitting}
             className="size-9 rounded-xl hover:bg-accent"
             title={t("hero.voiceInput")}
           >
@@ -130,7 +148,7 @@ export function TaskComposer({
           </Button>
           <Button
             onClick={onSend}
-            disabled={!value.trim()}
+            disabled={!value.trim() || isSubmitting}
             size="icon"
             className="size-9 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
             title={t("hero.send")}

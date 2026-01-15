@@ -70,10 +70,11 @@ export function ArtifactsHeader({
   const isSessionRunning =
     sessionStatus === "running" || sessionStatus === "accepted";
 
-  // Build dynamic className for flash animation
-  const buttonClassName = shouldFlash
-    ? "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background"
-    : "";
+  // Build dynamic className for flash animation (only when button is enabled)
+  const buttonClassName =
+    shouldFlash && !isSessionRunning
+      ? "animate-pulse ring-2 ring-primary ring-offset-2 ring-offset-background"
+      : "";
 
   return (
     <PanelHeader

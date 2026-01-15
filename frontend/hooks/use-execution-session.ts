@@ -73,7 +73,7 @@ interface UseExecutionSessionReturn {
 export function useExecutionSession({
   sessionId,
   pollingInterval = Number(process.env.NEXT_PUBLIC_SESSION_POLLING_INTERVAL) ||
-    5000,
+    6000,
   enableBackoff = true,
 }: UseExecutionSessionOptions): UseExecutionSessionReturn {
   const [session, setSession] = useState<ExecutionSession | null>(null);
@@ -94,22 +94,23 @@ export function useExecutionSession({
         currentProgress,
       );
 
-      // Handle user_prompt persistence
-      if (!session) {
-        const storedPrompt = localStorage.getItem(
-          `session_prompt_${sessionId}`,
-        );
-        if (storedPrompt) {
-          updatedSession.user_prompt = storedPrompt;
-        }
-      } else if (session.user_prompt) {
-        updatedSession.user_prompt = session.user_prompt;
-      }
-
       // Update ref for next poll
       progressRef.current = updatedSession.progress || 0;
 
-      setSession(updatedSession);
+      setSession((prevSession) => {
+        // Handle user_prompt persistence inside the state update
+        if (!prevSession) {
+          const storedPrompt = localStorage.getItem(
+            `session_prompt_${sessionId}`,
+          );
+          if (storedPrompt) {
+            updatedSession.user_prompt = storedPrompt;
+          }
+        } else if (prevSession.user_prompt) {
+          updatedSession.user_prompt = prevSession.user_prompt;
+        }
+        return updatedSession;
+      });
       setError(null);
     } catch (err) {
       console.error("[useExecutionSession] Failed to fetch session:", err);
@@ -117,7 +118,7 @@ export function useExecutionSession({
     } finally {
       setIsLoading(false);
     }
-  }, [sessionId, session]);
+  }, [sessionId]);
 
   // Initial fetch on mount
   useEffect(() => {
@@ -125,8 +126,8 @@ export function useExecutionSession({
   }, [fetchSession]);
 
   // Adaptive polling while session is active
-  const isSessionActive =
-    session?.status === "running" || session?.status === "accepted";
+  // Poll always to ensure late arriving updates are captured
+  const isSessionActive = !!sessionId;
 
   const { currentInterval, errorCount, trigger } = useAdaptivePolling({
     callback: fetchSession,

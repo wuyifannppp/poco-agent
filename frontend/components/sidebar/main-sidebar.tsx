@@ -12,6 +12,8 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Trash2,
+  X,
 } from "lucide-react";
 import {
   DndContext,
@@ -66,6 +68,10 @@ function DroppableAllTasksGroup({
   onRenameTask,
   onMoveTaskToProject,
   projects,
+  isSelectionMode,
+  selectedTaskIds,
+  onToggleTaskSelection,
+  onEnableSelectionMode,
 }: {
   title: string;
   tasks: TaskHistoryItem[];
@@ -73,6 +79,10 @@ function DroppableAllTasksGroup({
   onRenameTask?: (taskId: string, newName: string) => void;
   onMoveTaskToProject?: (taskId: string, projectId: string | null) => void;
   projects: ProjectItem[];
+  isSelectionMode?: boolean;
+  selectedTaskIds?: Set<string>;
+  onToggleTaskSelection?: (taskId: string) => void;
+  onEnableSelectionMode?: (taskId: string) => void;
 }) {
   const { t } = useT("translation");
   const { setNodeRef, isOver } = useDroppable({
@@ -100,6 +110,10 @@ function DroppableAllTasksGroup({
           onRenameTask={onRenameTask}
           onMoveTaskToProject={onMoveTaskToProject}
           projects={projects}
+          isSelectionMode={isSelectionMode}
+          selectedTaskIds={selectedTaskIds}
+          onToggleTaskSelection={onToggleTaskSelection}
+          onEnableSelectionMode={onEnableSelectionMode}
         />
         {isOver && (
           <div className="flex items-center justify-center p-2 text-xs text-primary bg-primary/5 rounded border border-dashed border-primary/20 mt-1">
@@ -137,6 +151,12 @@ export function MainSidebar({
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] =
     React.useState(false);
 
+  // Selection Mode State
+  const [isSelectionMode, setIsSelectionMode] = React.useState(false);
+  const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(
+    new Set(),
+  );
+
   // 管理每个项目的折叠状态
   const [expandedProjects, setExpandedProjects] = React.useState<Set<string>>(
     new Set(),
@@ -170,6 +190,36 @@ export function MainSidebar({
       },
     }),
   );
+
+  // Selection handlers
+  const handleEnableSelectionMode = React.useCallback((taskId: string) => {
+    setIsSelectionMode(true);
+    setSelectedTaskIds(new Set([taskId]));
+  }, []);
+
+  const handleToggleTaskSelection = React.useCallback((taskId: string) => {
+    setSelectedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCancelSelectionMode = React.useCallback(() => {
+    setIsSelectionMode(false);
+    setSelectedTaskIds(new Set());
+  }, []);
+
+  const handleDeleteSelectedTasks = React.useCallback(() => {
+    selectedTaskIds.forEach((taskId) => {
+      onDeleteTask(taskId);
+    });
+    handleCancelSelectionMode();
+  }, [selectedTaskIds, onDeleteTask, handleCancelSelectionMode]);
 
   const handleCreateProject = React.useCallback(
     (name: string) => {
@@ -270,52 +320,62 @@ export function MainSidebar({
             </Button>
           </div>
 
-          {/* 新建任务按钮 */}
-          <SidebarMenu className="group-data-[collapsible=icon]:px-0">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={onNewTask}
-                className="h-[36px] min-w-0 max-w-[calc(var(--sidebar-width)-16px)] w-full justify-start gap-3 rounded-[10px] px-3 py-[7.5px] text-muted-foreground transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:max-w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-                tooltip={t("sidebar.newTask")}
-              >
-                <PenSquare className="size-4 shrink-0" />
-                <span className="text-sm truncate group-data-[collapsible=icon]:hidden">
-                  {t("sidebar.newTask")}
-                </span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          {!isSelectionMode && (
+            <>
+              {/* 新建任务按钮 */}
+              <SidebarMenu className="group-data-[collapsible=icon]:px-0">
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={onNewTask}
+                    className="h-[36px] min-w-0 max-w-[calc(var(--sidebar-width)-16px)] w-full justify-start gap-3 rounded-[10px] px-3 py-[7.5px] text-muted-foreground transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:max-w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                    tooltip={t("sidebar.newTask")}
+                  >
+                    <PenSquare className="size-4 shrink-0" />
+                    <span className="text-sm truncate group-data-[collapsible=icon]:hidden">
+                      {t("sidebar.newTask")}
+                    </span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
 
-          {TOP_NAV_ITEMS.map(({ id, labelKey, icon: Icon, href }) => (
-            <SidebarMenu
-              key={id}
-              className="group-data-[collapsible=icon]:px-0"
-            >
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={() => {
-                    if (id === "search") {
-                      setIsSearchOpen(true);
-                    } else if (href) {
-                      router.push(href);
-                    }
-                  }}
-                  className="h-[36px] min-w-0 max-w-[calc(var(--sidebar-width)-16px)] w-full justify-start gap-3 rounded-[10px] px-3 py-[7.5px] text-muted-foreground transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:max-w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-                  tooltip={t(labelKey)}
+              {TOP_NAV_ITEMS.map(({ id, labelKey, icon: Icon, href }) => (
+                <SidebarMenu
+                  key={id}
+                  className="group-data-[collapsible=icon]:px-0"
                 >
-                  <Icon className="size-4 shrink-0" />
-                  <span className="text-sm truncate group-data-[collapsible=icon]:hidden">
-                    {t(labelKey)}
-                  </span>
-                  {id === "search" && (
-                    <kbd className="ml-auto text-xs opacity-60 group-data-[collapsible=icon]:hidden">
-                      {searchKey}
-                    </kbd>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          ))}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => {
+                        if (id === "search") {
+                          setIsSearchOpen(true);
+                        } else if (href) {
+                          router.push(href);
+                        }
+                      }}
+                      className="h-[36px] min-w-0 max-w-[calc(var(--sidebar-width)-16px)] w-full justify-start gap-3 rounded-[10px] px-3 py-[7.5px] text-muted-foreground transition-colors hover:bg-sidebar-accent group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:max-w-[var(--sidebar-width-icon)] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                      tooltip={t(labelKey)}
+                    >
+                      <Icon className="size-4 shrink-0" />
+                      <span className="text-sm truncate group-data-[collapsible=icon]:hidden">
+                        {t(labelKey)}
+                      </span>
+                      {id === "search" && (
+                        <kbd className="ml-auto text-xs opacity-60 group-data-[collapsible=icon]:hidden">
+                          {searchKey}
+                        </kbd>
+                      )}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              ))}
+            </>
+          )}
+
+          {isSelectionMode && (
+            <div className="px-2 py-1 text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+              批量操作
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent className="overflow-hidden group-data-[collapsible=icon]:px-0">
@@ -328,6 +388,10 @@ export function MainSidebar({
               onRenameTask={onRenameTask}
               onMoveTaskToProject={onMoveTaskToProject}
               projects={projects}
+              isSelectionMode={isSelectionMode}
+              selectedTaskIds={selectedTaskIds}
+              onToggleTaskSelection={handleToggleTaskSelection}
+              onEnableSelectionMode={handleEnableSelectionMode}
             />
 
             {/* 项目列表 */}
@@ -360,6 +424,10 @@ export function MainSidebar({
                       onRenameTask={onRenameTask}
                       onMoveTaskToProject={onMoveTaskToProject}
                       allProjects={projects}
+                      isSelectionMode={isSelectionMode}
+                      selectedTaskIds={selectedTaskIds}
+                      onToggleTaskSelection={handleToggleTaskSelection}
+                      onEnableSelectionMode={handleEnableSelectionMode}
                     />
                   ))}
                 </SidebarMenu>
@@ -368,26 +436,55 @@ export function MainSidebar({
           </ScrollArea>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border p-2 group-data-[collapsible=icon]:p-2">
-          {/* 底部工具栏 */}
-          <div className="flex items-center justify-start px-1 group-data-[collapsible=icon]:px-0">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenSettings}
-              className="size-8 text-muted-foreground hover:bg-sidebar-accent"
-              title={t("sidebar.settings")}
-            >
-              <SlidersHorizontal className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="ml-auto size-8 text-muted-foreground hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
-            >
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </div>
+        <SidebarFooter className="border-t border-sidebar-border p-2 group-data-[collapsible=icon]:p-2 relative bg-sidebar">
+          {isSelectionMode ? (
+            <div className="flex items-center justify-between w-full animate-in slide-in-from-bottom duration-200 px-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCancelSelectionMode}
+                className="size-8 text-muted-foreground hover:bg-sidebar-accent"
+                title={t("common.cancel") || "取消"}
+              >
+                <X className="size-4" />
+              </Button>
+
+              <div className="text-xs text-muted-foreground font-medium">
+                {selectedTaskIds.size}
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDeleteSelectedTasks}
+                disabled={selectedTaskIds.size === 0}
+                className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                title={t("common.delete") || "删除"}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ) : (
+            /* 底部工具栏 - 正常模式 */
+            <div className="flex items-center justify-start px-1 group-data-[collapsible=icon]:px-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onOpenSettings}
+                className="size-8 text-muted-foreground hover:bg-sidebar-accent"
+                title={t("sidebar.settings")}
+              >
+                <SlidersHorizontal className="size-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto size-8 text-muted-foreground hover:bg-sidebar-accent group-data-[collapsible=icon]:hidden"
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </div>
+          )}
         </SidebarFooter>
 
         <SidebarRail />

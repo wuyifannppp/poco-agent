@@ -28,6 +28,7 @@ export function HomePage() {
   const { taskHistory, addTask, removeTask, moveTask } = useTaskHistory();
 
   const [inputValue, setInputValue] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   useAutosizeTextarea(textareaRef, inputValue);
@@ -42,8 +43,9 @@ export function HomePage() {
   }, []);
 
   const handleSendTask = React.useCallback(async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isSubmitting) return;
 
+    setIsSubmitting(true);
     console.log("[Home] Sending task:", inputValue);
 
     try {
@@ -57,7 +59,7 @@ export function HomePage() {
       // 3. Add to local history (persisted via localStorage in hook)
       addTask(inputValue, {
         id: sessionId,
-        timestamp: t("mocks.timestamps.justNow"),
+        timestamp: new Date().toISOString(),
         status: "running",
       });
 
@@ -68,8 +70,9 @@ export function HomePage() {
       router.push(`/chat/${sessionId}`);
     } catch (error) {
       console.error("[Home] Failed to create session:", error);
+      setIsSubmitting(false);
     }
-  }, [addTask, inputValue, t, router]);
+  }, [addTask, inputValue, isSubmitting, router]);
 
   const handleCreateProject = React.useCallback(
     (name: string) => {
@@ -124,6 +127,7 @@ export function HomePage() {
                 value={inputValue}
                 onChange={setInputValue}
                 onSend={handleSendTask}
+                isSubmitting={isSubmitting}
               />
 
               <ConnectorsBar />

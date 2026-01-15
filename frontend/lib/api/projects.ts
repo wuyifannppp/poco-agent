@@ -11,14 +11,10 @@ export const projectsApi = {
     return [];
   },
 
-  create: async (name: string): Promise<ProjectItem> => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  create: async (_name: string): Promise<ProjectItem> => {
     // TODO: Replace with real API call
-    return {
-      id: `project-${Date.now()}`,
-      name,
-      taskCount: 0,
-      icon: "📁",
-    };
+    throw new Error("Project API not implemented");
   },
 };
 

@@ -4,6 +4,7 @@ import type { ChatMessage, ExecutionSession } from "@/lib/types";
 
 interface UseChatMessagesOptions {
   session: ExecutionSession | null;
+  pollingInterval?: number;
 }
 
 interface UseChatMessagesReturn {
@@ -27,6 +28,8 @@ interface UseChatMessagesReturn {
  */
 export function useChatMessages({
   session,
+  pollingInterval = Number(process.env.NEXT_PUBLIC_MESSAGE_POLLING_INTERVAL) ||
+    3000,
 }: UseChatMessagesOptions): UseChatMessagesReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -143,19 +146,18 @@ export function useChatMessages({
     // Initial fetch
     fetchMessages();
 
-    // Setup polling if active
+    // Setup polling
+    // Poll always to ensure consistent state
     let interval: NodeJS.Timeout;
-    const isActive =
-      session.status === "running" || session.status === "accepted";
 
-    if (isActive) {
-      interval = setInterval(fetchMessages, 3000);
+    if (session.session_id) {
+      interval = setInterval(fetchMessages, pollingInterval);
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [session?.session_id, session?.status, mergeMessages]);
+  }, [session?.session_id, session?.status, mergeMessages, pollingInterval]);
 
   // Manage isTyping state based on messages
   useEffect(() => {

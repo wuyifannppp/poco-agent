@@ -7,6 +7,7 @@ import {
   Plus,
   Minus,
   Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { FileChange } from "@/lib/types";
@@ -128,7 +129,11 @@ export function FileChangeCard({
           disabled={isSessionRunning}
           title={isSessionRunning ? "执行中，暂不可预览" : "预览文件"}
         >
-          <Eye className="size-4" />
+          {isSessionRunning ? (
+            <EyeOff className="size-4" />
+          ) : (
+            <Eye className="size-4" />
+          )}
         </Button>
       </div>
 

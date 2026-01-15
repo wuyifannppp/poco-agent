@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { tasksApi } from "@/lib/api/projects"; // Using same file for now as they are closely related in mocks
+import { tasksApi } from "@/lib/api/projects"; // Using same file for now
 import type { TaskHistoryItem } from "@/lib/api-types";
 
 export function useTaskHistory() {
@@ -16,7 +16,7 @@ export function useTaskHistory() {
       if (saved) {
         setTaskHistory(JSON.parse(saved));
       } else {
-        // 2. If nothing in storage, use API mocks
+        // 2. If nothing in storage, use API
         const data = await tasksApi.listHistory();
         setTaskHistory(data);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));

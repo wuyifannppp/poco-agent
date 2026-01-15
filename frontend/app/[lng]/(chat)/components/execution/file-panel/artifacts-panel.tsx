@@ -1,5 +1,6 @@
 "use client";
 
+import { chatApi } from "@/lib/api/chat";
 import { FileSidebar } from "./file-sidebar";
 import { DocumentViewer } from "./document-viewer";
 import { ArtifactsHeader } from "./artifacts-header";
@@ -58,7 +59,7 @@ export function ArtifactsPanel({
           sessionStatus={sessionStatus}
         />
         <div className="flex-1 min-h-0 flex overflow-hidden">
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 p-4">
             <DocumentViewer file={selectedFile} />
           </div>
           {isSidebarOpen && (
@@ -88,7 +89,7 @@ export function ArtifactsPanel({
         />
         <div className="flex-1 min-h-0 flex overflow-hidden">
           <div className="flex-1 min-w-0">
-            <ArtifactsEmpty />
+            <ArtifactsEmpty sessionStatus={sessionStatus} />
           </div>
           {isSidebarOpen && (
             <div className="shrink-0 relative z-10 animate-in slide-in-from-right duration-300 shadow-lg">
@@ -135,7 +136,20 @@ export function ArtifactsPanel({
                 return undefined;
               };
 
-              const file = findFileByPath(files, filePath);
+              let file = findFileByPath(files, filePath);
+
+              // If file not found in tree (e.g. list not refreshed yet), construct from path
+              if (!file && sessionId) {
+                const name = filePath.split("/").pop() || filePath;
+                file = {
+                  id: filePath,
+                  name,
+                  path: filePath,
+                  type: "file",
+                  url: chatApi.getFileUrl(sessionId, filePath),
+                };
+              }
+
               if (file) {
                 selectFile(file);
                 // Force open sidebar when previewing file

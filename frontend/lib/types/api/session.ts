@@ -2,7 +2,7 @@
  * Session-related API types matching backend schemas
  */
 
-import type { StatePatch } from "./callback";
+import type { ApiStatePatch } from "./callback";
 
 export interface SessionCreateRequest {
   user_id: string;
@@ -21,7 +21,7 @@ export interface SessionResponse {
   sdk_session_id: string | null;
   config_snapshot: Record<string, unknown> | null;
   workspace_archive_url: string | null;
-  state_patch?: StatePatch | null;
+  state_patch?: ApiStatePatch | null;
   workspace_export_status?: string | null;
   status: string;
   created_at: string; // ISO datetime

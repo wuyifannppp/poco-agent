@@ -6,6 +6,7 @@ import type {
   SearchResultProject,
   SearchResultMessage,
 } from "@/lib/api-types";
+import { sessionApi } from "@/lib/api-client";
 
 /**
  * Hook for fetching and aggregating search data
@@ -16,40 +17,22 @@ export function useSearchData() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<Error | null>(null);
 
-  // Mock data fetch - simulates API delay
+  // Fetch data from API
   const fetchData = React.useCallback(async () => {
     try {
       setIsLoading(true);
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const sessions = await sessionApi.list({ limit: 20 });
 
-      // Mock task data
-      const mockTasks: SearchResultTask[] = [
-        {
-          id: "1",
-          title: "帮我重构前端的代码",
-          status: "completed",
-          timestamp: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-          type: "task",
-        },
-        {
-          id: "2",
-          title: "研究一下 claude code",
-          status: "running",
-          timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-          type: "task",
-        },
-        {
-          id: "3",
-          title: "创建一个新的 React 组件",
-          status: "pending",
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          type: "task",
-        },
-      ];
+      const realTasks: SearchResultTask[] = sessions.map((session) => ({
+        id: session.session_id,
+        title: session.session_id.slice(0, 8), // Use partial ID as title for now
+        status: session.status,
+        timestamp: session.updated_at,
+        type: "task",
+      }));
 
-      setTasks(mockTasks);
+      setTasks(realTasks);
       setError(null);
     } catch (err) {
       console.error("Failed to fetch search data:", err);
@@ -64,20 +47,7 @@ export function useSearchData() {
     fetchData();
   }, [fetchData]);
 
-  // Mock projects - TODO: Fetch from backend when project API is available
-  const projects = React.useMemo<SearchResultProject[]>(
-    () => [
-      {
-        id: "p-1",
-        name: "新项目",
-        taskCount: 2,
-        type: "project",
-      },
-    ],
-    [],
-  );
-
-  // Mock messages - TODO: Fetch from backend when needed
+  const projects = React.useMemo<SearchResultProject[]>(() => [], []);
   const messages = React.useMemo<SearchResultMessage[]>(() => [], []);
 
   return {

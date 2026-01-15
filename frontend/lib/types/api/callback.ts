@@ -50,7 +50,7 @@ export interface AgentCurrentState {
  * State patch for incremental session updates
  * Contains agent execution state that can be merged into session state
  */
-export interface StatePatch {
+export interface ApiStatePatch {
   todos?: TodoItem[];
   mcp_status?: McpStatus[];
   workspace_state?: WorkspaceState | null;
@@ -63,7 +63,7 @@ export interface AgentCallbackRequest {
   status: CallbackStatus;
   progress: number;
   new_message?: unknown | null;
-  state_patch?: AgentCurrentState | null;
+  state_patch?: ApiStatePatch | null;
   sdk_session_id?: string | null;
 }
 

@@ -40,23 +40,30 @@ function FileTreeItem({
 
     const ext = name.split(".").pop()?.toLowerCase();
     switch (ext) {
+      case "md":
+      case "txt":
       case "pdf":
       case "docx":
       case "doc":
         return <FileText className="size-4 text-muted-foreground" />;
       case "xlsx":
       case "xls":
+      case "csv":
         return <FileText className="size-4 text-muted-foreground" />;
       case "html":
+      case "css":
       case "ts":
       case "tsx":
       case "js":
       case "jsx":
+      case "json":
+      case "py":
         return <FileCode className="size-4 text-muted-foreground" />;
       case "jpg":
       case "jpeg":
       case "png":
       case "gif":
+      case "svg":
         return <FileImage className="size-4 text-muted-foreground" />;
       default:
         return <FileIcon className="size-4 text-muted-foreground" />;

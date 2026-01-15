@@ -10,7 +10,7 @@ import { ChatInput } from "./chat-input";
 import { PanelHeader } from "@/components/shared/panel-header";
 import { useChatMessages } from "./hooks/use-chat-messages";
 import { usePendingMessages } from "./hooks/use-pending-messages";
-import type { ExecutionSession, StatePatch } from "@/lib/types";
+import type { ExecutionSession, StatePatch } from "@/lib/types/ui";
 import { useT } from "@/app/i18n/client";
 
 interface ChatPanelProps {
