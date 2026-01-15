@@ -9,7 +9,6 @@ from app.schemas.session import TaskConfig
 class TaskEnqueueRequest(BaseModel):
     """Enqueue a new agent run (task)."""
 
-    user_id: str
     prompt: str
     config: TaskConfig | None = None
     session_id: UUID | None = None

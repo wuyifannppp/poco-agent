@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request as FastAPIRequest
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.deps import get_current_user_id, get_db
 from app.core.errors.error_codes import ErrorCode
 from app.core.errors.exceptions import AppException
 from app.core.settings import get_settings
@@ -39,10 +39,11 @@ usage_service = UsageService()
 @router.post("", response_model=ResponseSchema[SessionResponse])
 async def create_session(
     request: SessionCreateRequest,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Creates a new session."""
-    db_session = session_service.create_session(db, request)
+    db_session = session_service.create_session(db, user_id, request)
     return Response.success(
         data=SessionResponse.model_validate(db_session),
         message="Session created successfully",
@@ -52,10 +53,16 @@ async def create_session(
 @router.get("/{session_id}", response_model=ResponseSchema[SessionResponse])
 async def get_session(
     session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Gets session details."""
     db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     return Response.success(
         data=SessionResponse.model_validate(db_session),
         message="Session retrieved successfully",
@@ -66,9 +73,16 @@ async def get_session(
 async def update_session(
     session_id: uuid.UUID,
     request: SessionUpdateRequest,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Updates a session."""
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     db_session = session_service.update_session(db, session_id, request)
     return Response.success(
         data=SessionResponse.model_validate(db_session),
@@ -78,7 +92,7 @@ async def update_session(
 
 @router.get("", response_model=ResponseSchema[list[SessionResponse]])
 async def list_sessions(
-    user_id: str | None = None,
+    user_id: str = Depends(get_current_user_id),
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -96,11 +110,17 @@ async def list_sessions(
 )
 async def get_session_messages(
     session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Gets all messages for a session."""
     # Verify session exists
-    session_service.get_session(db, session_id)
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     messages = message_service.get_messages(db, session_id)
     return Response.success(
         data=[MessageResponse.model_validate(m) for m in messages],
@@ -114,11 +134,17 @@ async def get_session_messages(
 )
 async def get_session_tool_executions(
     session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Gets all tool executions for a session."""
     # Verify session exists
-    session_service.get_session(db, session_id)
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     executions = tool_execution_service.get_tool_executions(db, session_id)
     return Response.success(
         data=[ToolExecutionResponse.model_validate(e) for e in executions],
@@ -129,11 +155,17 @@ async def get_session_tool_executions(
 @router.get("/{session_id}/usage", response_model=ResponseSchema[UsageResponse])
 async def get_session_usage(
     session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Gets usage statistics for a session."""
     # Verify session exists
-    session_service.get_session(db, session_id)
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     usage = usage_service.get_usage_summary(db, session_id)
     return Response.success(
         data=usage,
@@ -148,10 +180,16 @@ async def get_session_usage(
 async def get_session_workspace_files(
     session_id: uuid.UUID,
     request: FastAPIRequest,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """List workspace files for a session (proxy to Executor Manager)."""
     db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     settings = get_settings()
 
     url = f"{settings.executor_manager_url}/api/v1/workspace/files/{db_session.user_id}/{session_id}"
@@ -195,10 +233,16 @@ async def get_session_workspace_files(
 async def get_session_workspace_file(
     session_id: uuid.UUID,
     path: str = Query(..., description="File path within the session workspace"),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     """Redirect to Executor Manager file endpoint for preview/download."""
     db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     settings = get_settings()
 
     encoded = quote(path, safe="")

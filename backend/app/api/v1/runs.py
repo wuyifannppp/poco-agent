@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.deps import get_current_user_id, get_db
+from app.core.errors.error_codes import ErrorCode
+from app.core.errors.exceptions import AppException
 from app.schemas.response import Response, ResponseSchema
 from app.schemas.run import (
     RunClaimRequest,
@@ -14,10 +16,12 @@ from app.schemas.run import (
     RunStartRequest,
 )
 from app.services.run_service import RunService
+from app.services.session_service import SessionService
 
 router = APIRouter(prefix="/runs", tags=["runs"])
 
 run_service = RunService()
+session_service = SessionService()
 
 
 @router.post("/claim", response_model=ResponseSchema[RunClaimResponse | None])
@@ -55,20 +59,34 @@ async def fail_run(
 @router.get("/{run_id}", response_model=ResponseSchema[RunResponse])
 async def get_run(
     run_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Get run details."""
     result = run_service.get_run(db, run_id)
+    db_session = session_service.get_session(db, result.session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Run does not belong to the user",
+        )
     return Response.success(data=result, message="Run retrieved successfully")
 
 
 @router.get("/session/{session_id}", response_model=ResponseSchema[list[RunResponse]])
 async def list_runs_by_session(
     session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """List runs for a session."""
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
     runs = run_service.list_runs(db, session_id, limit=limit, offset=offset)
     return Response.success(data=runs, message="Runs retrieved successfully")

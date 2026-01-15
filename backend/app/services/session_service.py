@@ -16,21 +16,21 @@ class SessionService:
     """Service layer for session management."""
 
     def create_session(
-        self, db: Session, request: SessionCreateRequest
+        self, db: Session, user_id: str, request: SessionCreateRequest
     ) -> AgentSession:
         """Creates a new session."""
         config_dict = request.config.model_dump() if request.config else None
 
         db_session = SessionRepository.create(
             session_db=db,
-            user_id=request.user_id,
+            user_id=user_id,
             config=config_dict,
         )
 
         db.commit()
         db.refresh(db_session)
 
-        logger.info(f"Created session {db_session.id} for user {request.user_id}")
+        logger.info(f"Created session {db_session.id} for user {user_id}")
         return db_session
 
     def get_session(self, db: Session, session_id: uuid.UUID) -> AgentSession:

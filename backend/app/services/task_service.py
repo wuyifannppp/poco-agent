@@ -63,7 +63,7 @@ class TaskService:
         return schedule_mode, scheduled_at
 
     def enqueue_task(
-        self, db: Session, request: TaskEnqueueRequest
+        self, db: Session, user_id: str, request: TaskEnqueueRequest
     ) -> TaskEnqueueResponse:
         """Enqueue a new run for a session (create session if needed)."""
         if request.session_id:
@@ -73,7 +73,7 @@ class TaskService:
                     error_code=ErrorCode.NOT_FOUND,
                     message=f"Session not found: {request.session_id}",
                 )
-            if db_session.user_id != request.user_id:
+            if db_session.user_id != user_id:
                 raise AppException(
                     error_code=ErrorCode.FORBIDDEN,
                     message="Session does not belong to the user",
@@ -82,7 +82,7 @@ class TaskService:
             config_dict = request.config.model_dump() if request.config else None
             db_session = SessionRepository.create(
                 session_db=db,
-                user_id=request.user_id,
+                user_id=user_id,
                 config=config_dict,
             )
             db.flush()

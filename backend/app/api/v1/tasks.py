@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.core.deps import get_current_user_id, get_db
 from app.schemas.response import Response, ResponseSchema
 from app.schemas.task import TaskEnqueueRequest, TaskEnqueueResponse
 from app.services.task_service import TaskService
@@ -15,8 +15,9 @@ task_service = TaskService()
 @router.post("", response_model=ResponseSchema[TaskEnqueueResponse])
 async def enqueue_task(
     request: TaskEnqueueRequest,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Enqueue a task (agent run) for execution."""
-    result = task_service.enqueue_task(db, request)
+    result = task_service.enqueue_task(db, user_id, request)
     return Response.success(data=result, message="Task enqueued successfully")

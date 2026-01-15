@@ -17,7 +17,6 @@ class TaskConfig(BaseModel):
 class SessionCreateRequest(BaseModel):
     """Request to create a session."""
 
-    user_id: str
     config: TaskConfig | None = None
 
 
