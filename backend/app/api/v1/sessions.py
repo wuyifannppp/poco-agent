@@ -51,46 +51,6 @@ async def create_session(
     )
 
 
-@router.get("/{session_id}", response_model=ResponseSchema[SessionResponse])
-async def get_session(
-    session_id: uuid.UUID,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
-    """Gets session details."""
-    db_session = session_service.get_session(db, session_id)
-    if db_session.user_id != user_id:
-        raise AppException(
-            error_code=ErrorCode.FORBIDDEN,
-            message="Session does not belong to the user",
-        )
-    return Response.success(
-        data=SessionResponse.model_validate(db_session),
-        message="Session retrieved successfully",
-    )
-
-
-@router.patch("/{session_id}", response_model=ResponseSchema[SessionResponse])
-async def update_session(
-    session_id: uuid.UUID,
-    request: SessionUpdateRequest,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-) -> JSONResponse:
-    """Updates a session."""
-    db_session = session_service.get_session(db, session_id)
-    if db_session.user_id != user_id:
-        raise AppException(
-            error_code=ErrorCode.FORBIDDEN,
-            message="Session does not belong to the user",
-        )
-    db_session = session_service.update_session(db, session_id, request)
-    return Response.success(
-        data=SessionResponse.model_validate(db_session),
-        message="Session updated successfully",
-    )
-
-
 @router.get("", response_model=ResponseSchema[list[SessionResponse]])
 async def list_sessions(
     user_id: str = Depends(get_current_user_id),
@@ -138,6 +98,46 @@ async def list_sessions_with_titles(
     return Response.success(
         data=result,
         message="Sessions with titles retrieved successfully",
+    )
+
+
+@router.get("/{session_id}", response_model=ResponseSchema[SessionResponse])
+async def get_session(
+    session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """Gets session details."""
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
+    return Response.success(
+        data=SessionResponse.model_validate(db_session),
+        message="Session retrieved successfully",
+    )
+
+
+@router.patch("/{session_id}", response_model=ResponseSchema[SessionResponse])
+async def update_session(
+    session_id: uuid.UUID,
+    request: SessionUpdateRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """Updates a session."""
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
+    db_session = session_service.update_session(db, session_id, request)
+    return Response.success(
+        data=SessionResponse.model_validate(db_session),
+        message="Session updated successfully",
     )
 
 
