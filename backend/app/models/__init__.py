@@ -5,6 +5,7 @@ from app.models.agent_run import AgentRun
 from app.models.agent_session import AgentSession
 from app.models.env_var import UserEnvVar
 from app.models.mcp_preset import McpPreset
+from app.models.project import Project
 from app.models.skill_preset import SkillPreset
 from app.models.tool_execution import ToolExecution
 from app.models.usage_log import UsageLog
@@ -19,6 +20,7 @@ __all__ = [
     "AgentSession",
     "UserEnvVar",
     "McpPreset",
+    "Project",
     "SkillPreset",
     "ToolExecution",
     "UsageLog",

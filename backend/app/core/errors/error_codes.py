@@ -19,6 +19,7 @@ class ErrorCode(Enum):
     MCP_PRESET_CREATE_FORBIDDEN = (12002, "MCP preset creation forbidden")
     SKILL_PRESET_NOT_FOUND = (13001, "Skill preset not found")
     SKILL_PRESET_CREATE_FORBIDDEN = (13002, "Skill preset creation forbidden")
+    PROJECT_NOT_FOUND = (14001, "Project not found")
 
     INTERNAL_ERROR = (50000, "Internal server error")
     DATABASE_ERROR = (50101, "Database operation failed")

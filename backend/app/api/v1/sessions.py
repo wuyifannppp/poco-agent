@@ -59,10 +59,11 @@ async def list_sessions(
     user_id: str = Depends(get_current_user_id),
     limit: int = 100,
     offset: int = 0,
+    project_id: uuid.UUID | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Lists sessions."""
-    sessions = session_service.list_sessions(db, user_id, limit, offset)
+    sessions = session_service.list_sessions(db, user_id, limit, offset, project_id)
     return Response.success(
         data=[SessionResponse.model_validate(s) for s in sessions],
         message="Sessions retrieved successfully",
@@ -80,6 +81,7 @@ async def list_sessions_with_titles(
         default=None, description="Limit number of results (default: all)"
     ),
     offset: int = Query(default=0, description="Offset for pagination"),
+    project_id: uuid.UUID | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
     """Lists sessions with titles from first user prompt.
@@ -87,7 +89,7 @@ async def list_sessions_with_titles(
     @deprecated: Temporary API for frontend development. Will be replaced.
     """
     sessions_with_titles = session_service.list_sessions_with_titles(
-        db, user_id, limit, offset
+        db, user_id, limit, offset, project_id
     )
 
     result = []

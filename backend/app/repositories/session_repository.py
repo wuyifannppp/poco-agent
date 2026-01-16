@@ -11,7 +11,10 @@ class SessionRepository:
 
     @staticmethod
     def create(
-        session_db: Session, user_id: str, config: dict[str, Any] | None = None
+        session_db: Session,
+        user_id: str,
+        config: dict[str, Any] | None = None,
+        project_id: uuid.UUID | None = None,
     ) -> AgentSession:
         """Creates a new session.
 
@@ -20,6 +23,7 @@ class SessionRepository:
         db_session = AgentSession(
             user_id=user_id,
             config_snapshot=config,
+            project_id=project_id,
             status="pending",
         )
         session_db.add(db_session)
@@ -57,15 +61,17 @@ class SessionRepository:
         user_id: str,
         limit: int = 100,
         offset: int = 0,
+        project_id: uuid.UUID | None = None,
     ) -> list[AgentSession]:
         """Lists sessions for a user."""
+        query = session_db.query(AgentSession).filter(
+            AgentSession.user_id == user_id,
+            AgentSession.is_deleted.is_(False),
+        )
+        if project_id is not None:
+            query = query.filter(AgentSession.project_id == project_id)
         return (
-            session_db.query(AgentSession)
-            .filter(
-                AgentSession.user_id == user_id,
-                AgentSession.is_deleted.is_(False),
-            )
-            .order_by(AgentSession.created_at.desc())
+            query.order_by(AgentSession.created_at.desc())
             .limit(limit)
             .offset(offset)
             .all()
@@ -76,12 +82,16 @@ class SessionRepository:
         session_db: Session,
         limit: int = 100,
         offset: int = 0,
+        project_id: uuid.UUID | None = None,
     ) -> list[AgentSession]:
         """Lists all sessions."""
+        query = session_db.query(AgentSession).filter(
+            AgentSession.is_deleted.is_(False)
+        )
+        if project_id is not None:
+            query = query.filter(AgentSession.project_id == project_id)
         return (
-            session_db.query(AgentSession)
-            .filter(AgentSession.is_deleted.is_(False))
-            .order_by(AgentSession.created_at.desc())
+            query.order_by(AgentSession.created_at.desc())
             .limit(limit)
             .offset(offset)
             .all()
@@ -105,20 +115,28 @@ class SessionRepository:
         user_id: str,
         limit: int | None = None,
         offset: int = 0,
+        project_id: uuid.UUID | None = None,
     ) -> list[AgentSession]:
         """Lists sessions for a user with messages loaded for title extraction.
 
         @deprecated: Temporary method for frontend development.
         """
-        query = (
-            session_db.query(AgentSession)
-            .options(joinedload(AgentSession.messages))
-            .filter(
-                AgentSession.user_id == user_id,
-                AgentSession.is_deleted.is_(False),
-            )
-            .order_by(AgentSession.created_at.desc())
+        query = session_db.query(AgentSession).options(
+            joinedload(AgentSession.messages)
         )
+        query = query.filter(
+            AgentSession.user_id == user_id,
+            AgentSession.is_deleted.is_(False),
+        )
+        if project_id is not None:
+            query = query.filter(AgentSession.project_id == project_id)
+        query = query.order_by(AgentSession.created_at.desc())
         if limit is not None:
             query = query.limit(limit).offset(offset)
         return query.all()
+
+    @staticmethod
+    def clear_project_id(session_db: Session, project_id: uuid.UUID) -> None:
+        session_db.query(AgentSession).filter(
+            AgentSession.project_id == project_id
+        ).update({AgentSession.project_id: None}, synchronize_session=False)

@@ -12,6 +12,7 @@ class TaskEnqueueRequest(BaseModel):
     prompt: str
     config: TaskConfig | None = None
     session_id: UUID | None = None
+    project_id: UUID | None = None
     schedule_mode: str = "immediate"
     timezone: str | None = None
     scheduled_at: datetime | None = None

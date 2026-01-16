@@ -21,6 +21,7 @@ class SessionCreateRequest(BaseModel):
     """Request to create a session."""
 
     config: TaskConfig | None = None
+    project_id: UUID | None = None
 
 
 class SessionUpdateRequest(BaseModel):
@@ -29,6 +30,7 @@ class SessionUpdateRequest(BaseModel):
     status: str | None = None
     sdk_session_id: str | None = None
     workspace_archive_url: str | None = None
+    project_id: UUID | None = None
     state_patch: dict[str, Any] | None = None
     workspace_files_prefix: str | None = None
     workspace_manifest_key: str | None = None
@@ -41,6 +43,7 @@ class SessionResponse(BaseModel):
 
     session_id: UUID = Field(validation_alias="id")
     user_id: str
+    project_id: UUID | None
     sdk_session_id: str | None
     config_snapshot: dict[str, Any] | None
     workspace_archive_url: str | None
@@ -61,6 +64,7 @@ class SessionWithTitleResponse(BaseModel):
 
     session_id: UUID = Field(validation_alias="id")
     user_id: str
+    project_id: UUID | None
     sdk_session_id: str | None
     config_snapshot: dict[str, Any] | None
     workspace_archive_url: str | None

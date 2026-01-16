@@ -6,6 +6,7 @@ from app.core.errors.error_codes import ErrorCode
 from app.core.errors.exceptions import AppException
 from app.repositories.message_repository import MessageRepository
 from app.repositories.mcp_preset_repository import McpPresetRepository
+from app.repositories.project_repository import ProjectRepository
 from app.repositories.run_repository import RunRepository
 from app.repositories.session_repository import SessionRepository
 from app.repositories.skill_preset_repository import SkillPresetRepository
@@ -72,6 +73,7 @@ class TaskService:
     ) -> TaskEnqueueResponse:
         """Enqueue a new run for a session (create session if needed)."""
         base_config: dict | None = None
+        project_id = request.project_id
         if request.session_id:
             db_session = SessionRepository.get_by_id(db, request.session_id)
             if not db_session:
@@ -84,6 +86,11 @@ class TaskService:
                     error_code=ErrorCode.FORBIDDEN,
                     message="Session does not belong to the user",
                 )
+            if project_id is not None and db_session.project_id != project_id:
+                raise AppException(
+                    error_code=ErrorCode.BAD_REQUEST,
+                    message="project_id does not match the session",
+                )
             base_config = db_session.config_snapshot or {}
             merged_config = self._build_config_snapshot(
                 db, user_id, request.config, base_config=base_config
@@ -94,10 +101,18 @@ class TaskService:
                 db, user_id, request.config, base_config=base_config
             )
             config_dict = merged_config
+            if project_id is not None:
+                project = ProjectRepository.get_by_id(db, project_id)
+                if not project or project.user_id != user_id:
+                    raise AppException(
+                        error_code=ErrorCode.PROJECT_NOT_FOUND,
+                        message=f"Project not found: {project_id}",
+                    )
             db_session = SessionRepository.create(
                 session_db=db,
                 user_id=user_id,
                 config=config_dict,
+                project_id=project_id,
             )
             db.flush()
         if merged_config is not None:

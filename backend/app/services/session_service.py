@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.errors.error_codes import ErrorCode
 from app.core.errors.exceptions import AppException
 from app.models.agent_session import AgentSession
+from app.repositories.project_repository import ProjectRepository
 from app.repositories.session_repository import SessionRepository
 from app.schemas.session import SessionCreateRequest, SessionUpdateRequest
 
@@ -20,11 +21,20 @@ class SessionService:
     ) -> AgentSession:
         """Creates a new session."""
         config_dict = request.config.model_dump() if request.config else None
+        project_id = request.project_id
+        if project_id is not None:
+            project = ProjectRepository.get_by_id(db, project_id)
+            if not project or project.user_id != user_id:
+                raise AppException(
+                    error_code=ErrorCode.PROJECT_NOT_FOUND,
+                    message=f"Project not found: {project_id}",
+                )
 
         db_session = SessionRepository.create(
             session_db=db,
             user_id=user_id,
             config=config_dict,
+            project_id=project_id,
         )
 
         db.commit()
@@ -52,6 +62,18 @@ class SessionService:
     ) -> AgentSession:
         """Updates session fields."""
         db_session = self.get_session(db, session_id)
+        if "project_id" in request.model_fields_set:
+            project_id = request.project_id
+            if project_id is None:
+                db_session.project_id = None
+            else:
+                project = ProjectRepository.get_by_id(db, project_id)
+                if not project or project.user_id != db_session.user_id:
+                    raise AppException(
+                        error_code=ErrorCode.PROJECT_NOT_FOUND,
+                        message=f"Project not found: {project_id}",
+                    )
+                db_session.project_id = project_id
 
         if request.status is not None:
             db_session.status = request.status
@@ -88,12 +110,19 @@ class SessionService:
         return db_session
 
     def list_sessions(
-        self, db: Session, user_id: str | None = None, limit: int = 100, offset: int = 0
+        self,
+        db: Session,
+        user_id: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+        project_id: uuid.UUID | None = None,
     ) -> list[AgentSession]:
         """Lists sessions, optionally filtered by user."""
         if user_id:
-            return SessionRepository.list_by_user(db, user_id, limit, offset)
-        return SessionRepository.list_all(db, limit, offset)
+            return SessionRepository.list_by_user(
+                db, user_id, limit, offset, project_id
+            )
+        return SessionRepository.list_all(db, limit, offset, project_id)
 
     def find_session_by_sdk_id_or_uuid(
         self, db: Session, session_id: str
@@ -144,13 +173,14 @@ class SessionService:
         user_id: str,
         limit: int | None = None,
         offset: int = 0,
+        project_id: uuid.UUID | None = None,
     ) -> list[dict]:
         """Lists sessions with titles extracted from first user message.
 
         @deprecated: Temporary method for frontend development. Will be replaced.
         """
         sessions = SessionRepository.list_by_user_with_messages(
-            db, user_id, limit, offset
+            db, user_id, limit, offset, project_id
         )
 
         result = []
