@@ -6,6 +6,7 @@ from app.services.container_pool import ContainerPool
 from app.services.executor_client import ExecutorClient
 from app.services.config_resolver import ConfigResolver
 from app.services.skill_stager import SkillStager
+from app.services.attachment_stager import AttachmentStager
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ class TaskDispatcher:
         container_pool = TaskDispatcher.get_container_pool()
         config_resolver = ConfigResolver(backend_client)
         skill_stager = SkillStager()
+        attachment_stager = AttachmentStager()
 
         user_id = config.get("user_id", "")
         container_mode = config.get("container_mode", "ephemeral")
@@ -66,6 +68,12 @@ class TaskDispatcher:
                 skills=resolved_config.get("skill_files") or {},
             )
             resolved_config["skill_files"] = staged_skills
+            staged_inputs = attachment_stager.stage_inputs(
+                user_id=user_id,
+                session_id=session_id,
+                inputs=resolved_config.get("input_files") or [],
+            )
+            resolved_config["input_files"] = staged_inputs
 
             executor_url, container_id = await container_pool.get_or_create_container(
                 session_id=session_id,

@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from app.schemas.callback import AgentCurrentState
+from app.schemas.input_file import InputFile
 
 
 class TaskConfig(BaseModel):
@@ -13,6 +14,7 @@ class TaskConfig(BaseModel):
     git_branch: str = "main"
     mcp_config: dict = Field(default_factory=dict)
     skill_files: dict = Field(default_factory=dict)
+    input_files: list[InputFile] = Field(default_factory=list)
 
 
 class SessionCreateRequest(BaseModel):

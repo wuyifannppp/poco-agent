@@ -44,13 +44,16 @@ class ConfigResolver:
 
         mcp_config = config_snapshot.get("mcp_config") or {}
         skill_files = config_snapshot.get("skill_files") or {}
+        input_files = config_snapshot.get("input_files") or []
 
         resolved_mcp = self._resolve_mcp(mcp_config, env_map)
         resolved_skills = self._resolve_skills(skill_files, env_map)
+        resolved_inputs = _resolve_env_value(input_files, env_map)
 
         resolved = dict(config_snapshot)
         resolved["mcp_config"] = resolved_mcp
         resolved["skill_files"] = resolved_skills
+        resolved["input_files"] = resolved_inputs
         return resolved
 
     async def _ensure_cache(self) -> None:

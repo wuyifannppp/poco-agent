@@ -89,3 +89,28 @@ class S3StorageService:
                 message="Failed to sign workspace object",
                 details={"key": key, "error": str(exc)},
             ) from exc
+
+    def upload_fileobj(
+        self,
+        *,
+        fileobj,
+        key: str,
+        content_type: str | None = None,
+    ) -> None:
+        extra_args: dict[str, Any] = {}
+        if content_type:
+            extra_args["ContentType"] = content_type
+        try:
+            if extra_args:
+                self.client.upload_fileobj(
+                    fileobj, self.bucket, key, ExtraArgs=extra_args
+                )
+            else:
+                self.client.upload_fileobj(fileobj, self.bucket, key)
+        except (ClientError, BotoCoreError) as exc:
+            logger.error(f"Failed to upload object {key}: {exc}")
+            raise AppException(
+                error_code=ErrorCode.EXTERNAL_SERVICE_ERROR,
+                message="Failed to upload file",
+                details={"key": key, "error": str(exc)},
+            ) from exc

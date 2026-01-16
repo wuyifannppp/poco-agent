@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    attachments,
     callback,
     env_vars,
     mcp_presets,
@@ -26,6 +27,7 @@ api_v1_router.include_router(schedules.router)
 api_v1_router.include_router(callback.router)
 api_v1_router.include_router(messages.router)
 api_v1_router.include_router(tool_executions.router)
+api_v1_router.include_router(attachments.router)
 api_v1_router.include_router(env_vars.router)
 api_v1_router.include_router(mcp_presets.router)
 api_v1_router.include_router(user_mcp_configs.router)

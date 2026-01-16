@@ -11,6 +11,7 @@ from app.services.backend_client import BackendClient
 from app.services.executor_client import ExecutorClient
 from app.services.config_resolver import ConfigResolver
 from app.services.skill_stager import SkillStager
+from app.services.attachment_stager import AttachmentStager
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class RunPullService:
         self.container_pool = TaskDispatcher.get_container_pool()
         self.config_resolver = ConfigResolver(self.backend_client)
         self.skill_stager = SkillStager()
+        self.attachment_stager = AttachmentStager()
 
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}"
         self._semaphore = asyncio.Semaphore(self.settings.max_concurrent_tasks)
@@ -182,6 +184,12 @@ class RunPullService:
                 skills=resolved_config.get("skill_files") or {},
             )
             resolved_config["skill_files"] = staged_skills
+            staged_inputs = self.attachment_stager.stage_inputs(
+                user_id=user_id,
+                session_id=session_id,
+                inputs=resolved_config.get("input_files") or [],
+            )
+            resolved_config["input_files"] = staged_inputs
 
             executor_url, _ = await self.container_pool.get_or_create_container(
                 session_id=session_id,
