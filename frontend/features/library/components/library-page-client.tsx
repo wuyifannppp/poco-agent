@@ -10,13 +10,35 @@ import { LibraryGrid } from "@/features/library/components/library-grid";
 
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useTaskHistory } from "@/features/projects/hooks/use-task-history";
+import { useProjectDeletion } from "@/features/projects/hooks/use-project-deletion";
 
 import { SettingsDialog } from "@/features/settings/components/settings-dialog";
 
 export function LibraryPageClient() {
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
-  const { projects, addProject } = useProjects({});
-  const { taskHistory, removeTask } = useTaskHistory({});
+  const { projects, addProject, updateProject, removeProject } = useProjects(
+    {},
+  );
+  const { taskHistory, removeTask, moveTask } = useTaskHistory({});
+  const deleteProject = useProjectDeletion({
+    taskHistory,
+    moveTask,
+    removeProject,
+  });
+
+  const handleRenameProject = React.useCallback(
+    (projectId: string, newName: string) => {
+      updateProject(projectId, { name: newName });
+    },
+    [updateProject],
+  );
+
+  const handleDeleteProject = React.useCallback(
+    async (projectId: string) => {
+      await deleteProject(projectId);
+    },
+    [deleteProject],
+  );
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -27,6 +49,8 @@ export function LibraryPageClient() {
           onNewTask={undefined}
           onDeleteTask={removeTask}
           onCreateProject={addProject}
+          onRenameProject={handleRenameProject}
+          onDeleteProject={handleDeleteProject}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
 

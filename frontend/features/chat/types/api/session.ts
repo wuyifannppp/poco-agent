@@ -17,12 +17,15 @@ export interface SessionUpdateRequest {
   workspace_manifest_key?: string | null;
   workspace_archive_key?: string | null;
   workspace_export_status?: string | null;
+  project_id?: string | null;
 }
 
 export interface SessionResponse {
   session_id: string; // UUID
   user_id: string;
   sdk_session_id: string | null;
+  project_id?: string | null;
+  title?: string | null;
   config_snapshot: Record<string, unknown> | null;
   workspace_archive_url: string | null;
   state_patch?: ApiStatePatch | null;

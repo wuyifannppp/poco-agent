@@ -65,11 +65,11 @@ export function PanelHeader({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-b px-4 py-3",
+        "flex w-full min-w-0 items-center justify-between border-b px-4 py-3",
         className,
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         {Icon && showIcon && (
           <div
             onClick={onIconClick}
@@ -83,8 +83,11 @@ export function PanelHeader({
             <Icon className="h-5 w-5" />
           </div>
         )}
-        <div className="flex flex-col">
-          <h2 className={cn("text-sm font-semibold", titleClassName)}>
+        <div className="flex flex-col min-w-0">
+          <h2
+            className={cn("text-sm font-semibold truncate", titleClassName)}
+            title={title}
+          >
             {title}
           </h2>
           {description && (
@@ -92,7 +95,9 @@ export function PanelHeader({
           )}
         </div>
       </div>
-      {action && <div className="flex items-center">{action}</div>}
+      {action && (
+        <div className="flex items-center shrink-0 ml-2">{action}</div>
+      )}
     </div>
   );
 }

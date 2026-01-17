@@ -1,4 +1,5 @@
 "use client";
+
 import { FileSidebar } from "./file-sidebar";
 import { DocumentViewer } from "./document-viewer";
 import { ArtifactsHeader } from "./artifacts-header";
@@ -10,7 +11,13 @@ import type { FileChange, FileNode } from "@/features/chat/types";
 interface ArtifactsPanelProps {
   fileChanges?: FileChange[];
   sessionId?: string;
-  sessionStatus?: "running" | "accepted" | "completed" | "failed" | "cancelled";
+  sessionStatus?:
+    | "running"
+    | "accepted"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "stopped";
 }
 
 /**
@@ -55,10 +62,11 @@ export function ArtifactsPanel({
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={toggleSidebar}
           sessionStatus={sessionStatus}
+          hasFiles={files.length > 0}
         />
         <div className="flex-1 min-h-0 flex overflow-hidden">
           <div className="flex-1 min-w-0 p-4">
-            <DocumentViewer file={selectedFile} />
+            <DocumentViewer file={selectedFile} sessionId={sessionId} />
           </div>
           {isSidebarOpen && (
             <div className="shrink-0 relative z-10 animate-in slide-in-from-right duration-300 shadow-lg">
@@ -84,6 +92,7 @@ export function ArtifactsPanel({
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={toggleSidebar}
           sessionStatus={sessionStatus}
+          hasFiles={files.length > 0}
         />
         <div className="flex-1 min-h-0 flex overflow-hidden">
           <div className="flex-1 min-w-0">
@@ -112,6 +121,7 @@ export function ArtifactsPanel({
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={toggleSidebar}
         sessionStatus={sessionStatus}
+        hasFiles={files.length > 0}
       />
       <div className="flex-1 min-h-0 flex overflow-hidden">
         <div className="flex-1 min-w-0">
@@ -139,11 +149,14 @@ export function ArtifactsPanel({
               // If file not found in tree (e.g. list not refreshed yet), construct from path
               if (!file && sessionId) {
                 const name = filePath.split("/").pop() || filePath;
+                // const baseUrl = getApiBaseUrl();
+                // const url = `${baseUrl}${API_PREFIX}${API_ENDPOINTS.sessionWorkspaceFile(sessionId, filePath)}`;
                 file = {
                   id: filePath,
                   name,
                   path: filePath,
                   type: "file",
+                  // url: undefined, // URL cannot be constructed client-side anymore
                 };
               }
 

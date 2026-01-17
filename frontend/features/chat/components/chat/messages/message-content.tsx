@@ -83,8 +83,10 @@ export function MessageContent({
 }) {
   // Helper function to extract text content from message
   const getTextContent = (content: string | MessageBlock[]): string => {
+    const clean = (text: string) => text.replace(/\uFFFD/g, "");
+
     if (typeof content === "string") {
-      return content;
+      return clean(content);
     }
     // If it's an array of blocks, extract text from TextBlock
     if (Array.isArray(content)) {
@@ -94,11 +96,11 @@ export function MessageContent({
       );
       return textBlocks
         .map((block: MessageBlock) =>
-          block._type === "TextBlock" ? block.text : "",
+          block._type === "TextBlock" ? clean(block.text) : "",
         )
         .join("\n\n");
     }
-    return String(content);
+    return clean(String(content));
   };
 
   const textContent = getTextContent(content);
@@ -106,7 +108,7 @@ export function MessageContent({
   // If content is string, render as before
   if (typeof content === "string") {
     return (
-      <div className="prose prose-sm dark:prose-invert max-w-none break-words w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_*]:break-words">
+      <div className="prose prose-sm dark:prose-invert max-w-none break-words break-all w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_p]:break-all [&_*]:break-words [&_*]:break-all">
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkBreaks]}
           rehypePlugins={[rehypeHighlight]}
@@ -147,6 +149,7 @@ export function MessageContent({
                 {children}
               </h3>
             ),
+            hr: () => <hr className="my-6 border-border" />,
           }}
         >
           {textContent}
@@ -192,7 +195,7 @@ export function MessageContent({
           return (
             <div
               key={index}
-              className="prose prose-sm dark:prose-invert max-w-none break-words w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_*]:break-words"
+              className="prose prose-sm dark:prose-invert max-w-none break-words break-all w-full min-w-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&_p]:break-words [&_p]:break-all [&_*]:break-words [&_*]:break-all"
             >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -234,6 +237,7 @@ export function MessageContent({
                       {children}
                     </h3>
                   ),
+                  hr: () => <hr className="my-6 border-border" />,
                 }}
               >
                 {text}

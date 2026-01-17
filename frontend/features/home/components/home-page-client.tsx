@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useAutosizeTextarea } from "../hooks/use-autosize-textarea";
 import { useTaskHistory } from "@/features/projects/hooks/use-task-history";
 import { useProjects } from "@/features/projects/hooks/use-projects";
+import { useProjectDeletion } from "@/features/projects/hooks/use-project-deletion";
 
 import { AppSidebar } from "@/components/shared/sidebar/app-sidebar";
 import { HomeHeader } from "./home-header";
@@ -25,8 +26,15 @@ export function HomePageClient() {
 
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
 
-  const { projects, addProject } = useProjects({});
+  const { projects, addProject, updateProject, removeProject } = useProjects(
+    {},
+  );
   const { taskHistory, addTask, removeTask, moveTask } = useTaskHistory({});
+  const deleteProject = useProjectDeletion({
+    taskHistory,
+    moveTask,
+    removeProject,
+  });
 
   const [inputValue, setInputValue] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -94,6 +102,20 @@ export function HomePageClient() {
     [addProject],
   );
 
+  const handleRenameProject = React.useCallback(
+    (projectId: string, newName: string) => {
+      updateProject(projectId, { name: newName });
+    },
+    [updateProject],
+  );
+
+  const handleDeleteProject = React.useCallback(
+    async (projectId: string) => {
+      await deleteProject(projectId);
+    },
+    [deleteProject],
+  );
+
   const handleRenameTask = React.useCallback(
     (taskId: string, newName: string) => {
       // TODO: Implement task rename logic
@@ -120,6 +142,8 @@ export function HomePageClient() {
           onRenameTask={handleRenameTask}
           onMoveTaskToProject={handleMoveTaskToProject}
           onCreateProject={handleCreateProject}
+          onRenameProject={handleRenameProject}
+          onDeleteProject={handleDeleteProject}
           onOpenSettings={handleOpenSettings}
         />
 
@@ -141,9 +165,7 @@ export function HomePageClient() {
                 onChange={setInputValue}
                 onSend={handleSendTask}
                 isSubmitting={isSubmitting}
-                onAttachmentsChange={(files: InputFile[]) =>
-                  setAttachments((prev) => [...prev, ...files])
-                }
+                onAttachmentsChange={setAttachments}
               />
 
               <ConnectorsBar />

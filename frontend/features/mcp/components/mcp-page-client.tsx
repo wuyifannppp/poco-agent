@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/shared/sidebar/app-sidebar";
 
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useTaskHistory } from "@/features/projects/hooks/use-task-history";
+import { useProjectDeletion } from "@/features/projects/hooks/use-project-deletion";
 import { McpHeader } from "@/features/mcp/components/mcp-header";
 import { McpGrid } from "@/features/mcp/components/mcp-grid";
 import { McpSettingsDialog } from "@/features/mcp/components/mcp-settings-dialog";
@@ -31,8 +32,15 @@ export function McpPageClient({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [configs, _setConfigs] = useState<UserMcpConfig[]>(initialConfigs);
 
-  const { projects, addProject } = useProjects({});
-  const { taskHistory, removeTask } = useTaskHistory({});
+  const { projects, addProject, updateProject, removeProject } = useProjects(
+    {},
+  );
+  const { taskHistory, removeTask, moveTask } = useTaskHistory({});
+  const deleteProject = useProjectDeletion({
+    taskHistory,
+    moveTask,
+    removeProject,
+  });
 
   // TODO: Connect to real API
   const handleAddConfig = async (presetId: number) => {
@@ -71,6 +79,14 @@ export function McpPageClient({
     return { preset: selectedPreset, config: config || undefined };
   }, [selectedPreset, configs]);
 
+  const handleRenameProject = (projectId: string, newName: string) => {
+    updateProject(projectId, { name: newName });
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    await deleteProject(projectId);
+  };
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-svh w-full overflow-hidden bg-background">
@@ -79,6 +95,8 @@ export function McpPageClient({
           taskHistory={taskHistory}
           onDeleteTask={removeTask}
           onCreateProject={addProject}
+          onRenameProject={handleRenameProject}
+          onDeleteProject={handleDeleteProject}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
 

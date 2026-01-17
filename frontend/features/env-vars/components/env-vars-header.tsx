@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import { Button } from "@/components/ui/button";
 
-export function EnvVarsHeader() {
+interface EnvVarsHeaderProps {
+  onAddClick?: () => void;
+}
+
+export function EnvVarsHeader({ onAddClick }: EnvVarsHeaderProps) {
   const { t } = useT("translation");
   const router = useRouter();
 
@@ -28,7 +32,12 @@ export function EnvVarsHeader() {
 
       {/* Right: Action Buttons */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2"
+          onClick={onAddClick}
+        >
           <Plus className="size-4" />
           {t("library.envVars.header.add", "添加变量")}
         </Button>

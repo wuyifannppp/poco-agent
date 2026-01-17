@@ -6,7 +6,13 @@ export type ViewMode = "artifacts" | "document";
 
 interface UseArtifactsOptions {
   sessionId?: string;
-  sessionStatus?: "running" | "accepted" | "completed" | "failed" | "cancelled";
+  sessionStatus?:
+    | "running"
+    | "accepted"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "stopped";
 }
 
 interface UseArtifactsReturn {
@@ -72,7 +78,8 @@ export function useArtifacts({
         prevStatusRef.current === "accepted") &&
       (sessionStatus === "completed" ||
         sessionStatus === "failed" ||
-        sessionStatus === "cancelled");
+        sessionStatus === "cancelled" ||
+        sessionStatus === "stopped");
 
     if (shouldAutoRefresh) {
       console.log("[Artifacts] Session finished, refreshing file list...");
@@ -81,9 +88,15 @@ export function useArtifacts({
     // Fetch files (initial or auto-refresh)
     const doFetch = async () => {
       try {
+        console.log(
+          `[Artifacts] Fetching file tree for session ${sessionId}, status: ${sessionStatus}`,
+        );
         setIsRefreshing(true);
         const data = await getFilesAction({ sessionId });
         setFiles(data);
+        console.log(
+          `[Artifacts] Successfully fetched ${data.length} root nodes`,
+        );
       } catch (error) {
         console.error("[Artifacts] Failed to fetch workspace files:", error);
       } finally {

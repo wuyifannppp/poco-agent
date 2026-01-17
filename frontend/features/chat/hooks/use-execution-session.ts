@@ -18,6 +18,11 @@ interface UseExecutionSessionOptions {
    * @default true
    */
   enableBackoff?: boolean;
+  /**
+   * Callback triggered when polling stops due to terminal session status
+   * Useful for refreshing task history to get updated titles
+   */
+  onPollingStop?: () => void;
 }
 
 interface UseExecutionSessionReturn {
@@ -75,6 +80,7 @@ export function useExecutionSession({
   pollingInterval = Number(process.env.NEXT_PUBLIC_SESSION_POLLING_INTERVAL) ||
     6000,
   enableBackoff = true,
+  onPollingStop,
 }: UseExecutionSessionOptions): UseExecutionSessionReturn {
   const [session, setSession] = useState<ExecutionSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -131,18 +137,27 @@ export function useExecutionSession({
     !!sessionId &&
     (!session || ["accepted", "running"].includes(session.status));
 
-  // Log when polling stops
+  // Log when polling stops and trigger callback
+  const hasStoppedRef = useRef(false);
   useEffect(() => {
     if (
       session &&
-      ["completed", "failed", "stopped"].includes(session.status)
+      ["completed", "failed", "stopped", "cancelled"].includes(session.status)
     ) {
-      console.log(
-        `%c[Polling] Stopped for session ${sessionId} (Status: ${session.status})`,
-        "color: #f59e0b; font-weight: bold;",
-      );
+      // Trigger callback only once when polling stops
+      if (!hasStoppedRef.current && onPollingStop) {
+        console.log(
+          `%c[Polling] Stopped for session ${sessionId} (Status: ${session.status})`,
+          "color: #f59e0b; font-weight: bold;",
+        );
+        hasStoppedRef.current = true;
+        onPollingStop();
+      }
+    } else if (session && ["accepted", "running"].includes(session.status)) {
+      // Reset ref when session becomes active again
+      hasStoppedRef.current = false;
     }
-  }, [session, sessionId]);
+  }, [session, sessionId, onPollingStop]);
 
   const { currentInterval, errorCount, trigger } = useAdaptivePolling({
     callback: fetchSession,

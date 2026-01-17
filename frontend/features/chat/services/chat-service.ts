@@ -9,6 +9,7 @@ import type {
   ChatMessage,
   MessageBlock,
   SessionResponse,
+  SessionUpdateRequest,
   TaskEnqueueRequest,
   TaskEnqueueResponse,
   TaskConfig,
@@ -34,6 +35,14 @@ interface MessageContentShape {
   subtype?: string;
   content?: MessageContentBlock[];
   text?: string;
+}
+
+/**
+ * Removes the Unicode replacement character ( / \uFFFD) from text.
+ */
+function cleanText(text: string): string {
+  if (!text) return text;
+  return text.replace(/\uFFFD/g, "");
 }
 
 function toExecutionSession(
@@ -129,11 +138,13 @@ export const chatService = {
   createSession: async (
     prompt: string,
     config?: TaskConfig | null,
+    projectId?: string | null,
   ): Promise<TaskEnqueueResponse> => {
     return chatService.enqueueTask({
       prompt,
       config,
       schedule_mode: "immediate",
+      project_id: projectId,
     });
   },
 
@@ -152,6 +163,16 @@ export const chatService = {
 
   deleteSession: async (sessionId: string): Promise<void> => {
     return apiClient.delete(API_ENDPOINTS.session(sessionId));
+  },
+
+  updateSession: async (
+    sessionId: string,
+    payload: SessionUpdateRequest,
+  ): Promise<SessionResponse> => {
+    return apiClient.patch<SessionResponse>(
+      API_ENDPOINTS.session(sessionId),
+      payload,
+    );
   },
 
   getMessages: async (sessionId: string): Promise<ChatMessage[]> => {
@@ -224,10 +245,11 @@ export const chatService = {
             const uiResultBlocks = toolResultBlocks.map((b) => ({
               _type: "ToolResultBlock" as const,
               tool_use_id: b.tool_use_id || "",
-              content:
+              content: cleanText(
                 typeof b.content === "string"
                   ? b.content
                   : JSON.stringify(b.content),
+              ),
               is_error: !!b.is_error,
             }));
             const existingBlocks =
@@ -247,7 +269,7 @@ export const chatService = {
           const textBlock = contentObj.content.find(
             (b) => b._type === "TextBlock",
           );
-          if (textBlock) textContent = textBlock.text || "";
+          if (textBlock) textContent = cleanText(textBlock.text || "");
         }
 
         if (textContent) {
@@ -292,21 +314,33 @@ export const chatService = {
     if (!sessionId) return [];
 
     try {
-      let rawFiles: FileNode[];
+      let rawFiles: FileNode[] = [];
       try {
         rawFiles = await apiClient.get<FileNode[]>(
           API_ENDPOINTS.sessionWorkspaceFiles(sessionId),
         );
-      } catch {
-        const session = await chatService.getSessionRaw(sessionId);
-        const fileChanges =
-          session.state_patch?.workspace_state?.file_changes || [];
-        rawFiles = fileChanges.map((change) => ({
-          id: change.path,
-          name: change.path.split("/").pop() || change.path,
-          path: change.path,
-          type: "file",
-        }));
+      } catch (err) {
+        console.warn("[Chat Service] Failed to get workspace files:", err);
+      }
+
+      // Fallback to file changes from session state if workspace is empty
+      if (!rawFiles || rawFiles.length === 0) {
+        try {
+          const session = await chatService.getSessionRaw(sessionId);
+          const fileChanges =
+            session.state_patch?.workspace_state?.file_changes || [];
+          rawFiles = fileChanges.map((change) => ({
+            id: change.path,
+            name: change.path.split("/").pop() || change.path,
+            path: change.path,
+            type: "file",
+          }));
+        } catch (err) {
+          console.error(
+            "[Chat Service] Fallback to session state failed:",
+            err,
+          );
+        }
       }
 
       const buildFileTree = (nodes: FileNode[]): FileNode[] => {
@@ -357,6 +391,14 @@ export const chatService = {
                 path: currentPath,
                 type: isLastPart && originalNode ? originalNode.type : "folder",
                 children: [],
+                ...(isLastPart && originalNode
+                  ? {
+                      url: originalNode.url,
+                      mimeType: originalNode.mimeType,
+                      oss_status: (originalNode as any).oss_status,
+                      oss_meta: (originalNode as any).oss_meta,
+                    }
+                  : {}),
               };
               nodeMap.set(currentPath, node);
             }

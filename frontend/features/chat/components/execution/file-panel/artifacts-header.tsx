@@ -11,7 +11,14 @@ interface ArtifactsHeaderProps {
   selectedFile?: FileNode;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
-  sessionStatus?: "running" | "accepted" | "completed" | "failed" | "cancelled";
+  sessionStatus?:
+    | "running"
+    | "accepted"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "stopped";
+  hasFiles?: boolean;
 }
 
 /**
@@ -24,6 +31,7 @@ export function ArtifactsHeader({
   isSidebarOpen,
   onToggleSidebar,
   sessionStatus,
+  hasFiles = true,
 }: ArtifactsHeaderProps) {
   const headerTitle = title || selectedFile?.name || "文档预览";
 
@@ -40,7 +48,8 @@ export function ArtifactsHeader({
     const isFinished =
       sessionStatus === "completed" ||
       sessionStatus === "failed" ||
-      sessionStatus === "cancelled";
+      sessionStatus === "cancelled" ||
+      sessionStatus === "stopped";
 
     // Trigger flash animation when transitioning from active to finished
     if (wasActive && isFinished) {
@@ -84,7 +93,7 @@ export function ArtifactsHeader({
       action={
         <PanelHeaderAction
           onClick={onToggleSidebar}
-          disabled={isSessionRunning}
+          disabled={isSessionRunning || !hasFiles}
           className={buttonClassName}
         >
           {isSidebarOpen ? (

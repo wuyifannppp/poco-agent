@@ -15,8 +15,6 @@ export const API_ENDPOINTS = {
   sessionUsage: (sessionId: string) => `/sessions/${sessionId}/usage`,
   sessionWorkspaceFiles: (sessionId: string) =>
     `/sessions/${sessionId}/workspace/files`,
-  sessionWorkspaceFile: (sessionId: string, filePath: string) =>
-    `/sessions/${sessionId}/workspace/file?path=${encodeURIComponent(filePath)}`,
 
   // Tasks
   tasks: "/tasks",
@@ -71,7 +69,7 @@ export function getApiBaseUrl() {
   if (!API_BASE_URL) {
     throw new ApiError("API base URL is not configured", 500);
   }
-  return API_BASE_URL;
+  return API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
 }
 
 async function resolveAuthToken(): Promise<string | null> {

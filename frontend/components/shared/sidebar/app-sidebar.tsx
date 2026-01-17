@@ -12,10 +12,12 @@ interface AppSidebarProps {
   projects: ProjectItem[];
   taskHistory: TaskHistoryItem[];
   onNewTask?: () => void;
-  onDeleteTask?: (taskId: string) => void;
+  onDeleteTask?: (taskId: string) => Promise<void> | void;
   onRenameTask?: (taskId: string, newName: string) => void;
   onMoveTaskToProject?: (taskId: string, projectId: string | null) => void;
   onCreateProject?: (name: string) => void;
+  onRenameProject?: (projectId: string, newName: string) => void;
+  onDeleteProject?: (projectId: string) => Promise<void> | void;
   onOpenSettings?: () => void;
 }
 
@@ -34,6 +36,8 @@ export function AppSidebar({
   onRenameTask,
   onMoveTaskToProject,
   onCreateProject,
+  onRenameProject,
+  onDeleteProject,
   onOpenSettings,
 }: AppSidebarProps) {
   const router = useRouter();
@@ -69,6 +73,8 @@ export function AppSidebar({
         onRenameTask={onRenameTask}
         onMoveTaskToProject={onMoveTaskToProject}
         onCreateProject={handleCreateProject}
+        onRenameProject={onRenameProject}
+        onDeleteProject={onDeleteProject}
         onOpenSettings={onOpenSettings}
       />
 

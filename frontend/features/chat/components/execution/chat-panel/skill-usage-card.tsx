@@ -24,7 +24,9 @@ export function SkillUsageCard({ skills }: SkillUsageCardProps) {
       case "failed":
         return <XCircle className="size-3 text-red-600 dark:text-red-400" />;
       case "running":
-        return <Loader2 className="size-3 text-primary animate-spin" />;
+        return (
+          <Loader2 className="size-3 text-muted-foreground animate-spin" />
+        );
       default:
         return <Clock className="size-3 text-muted-foreground" />;
     }

@@ -1,8 +1,5 @@
-"use client";
-
-import * as React from "react";
-
-import { ArrowUp, Mic, Plus, SlidersHorizontal } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { ArrowUp, Mic, Plus, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/lib/i18n/client";
@@ -16,14 +13,20 @@ import {
   AVAILABLE_CONNECTORS,
   type ConnectorType,
 } from "@/features/home/model/connectors";
+import { toast } from "sonner";
+import { uploadAttachment } from "@/features/attachments/services/attachment-service";
+import type { InputFile } from "@/features/chat/types";
+import { FileCard } from "@/components/shared/file-card";
 
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: () => void;
+  onSend: (attachments?: InputFile[]) => void;
   disabled?: boolean;
   hasMessages?: boolean;
 }
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 export function ChatInput({
   value,
@@ -33,11 +36,14 @@ export function ChatInput({
   hasMessages = false,
 }: ChatInputProps) {
   const { t } = useT("translation");
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const isComposing = React.useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isComposing = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [attachments, setAttachments] = useState<InputFile[]>([]);
 
   // Auto-resize textarea
-  React.useEffect(() => {
+  useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = "auto";
@@ -55,16 +61,101 @@ export function ChatInput({
         return;
       }
       e.preventDefault();
-      if (value.trim() && !disabled) {
-        onSend();
+      if (
+        (value.trim() || attachments.length > 0) &&
+        !disabled &&
+        !isUploading
+      ) {
+        onSend(attachments);
+        setAttachments([]);
       }
     }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t("hero.toasts.fileTooLarge", "文件过大，最大支持 100MB"));
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const uploadedFile = await uploadAttachment(file);
+      setAttachments((prev) => [...prev, uploadedFile]);
+      toast.success(t("hero.toasts.uploadSuccess", "文件上传成功"));
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error(t("hero.toasts.uploadFailed", "文件上传失败"));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const file = Array.from(items)
+      .find((item) => item.kind === "file")
+      ?.getAsFile();
+
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t("hero.toasts.fileTooLarge", "文件过大，最大支持 100MB"));
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const uploadedFile = await uploadAttachment(file);
+      setAttachments((prev) => [...prev, uploadedFile]);
+      toast.success(t("hero.toasts.uploadSuccess", "文件上传成功"));
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error(t("hero.toasts.uploadFailed", "文件上传失败"));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="border-t border-border p-4">
       <div className="max-w-4xl mx-auto">
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileSelect}
+        />
         <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          {/* Attachments */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 px-4 pt-4">
+              {attachments.map((file, i) => (
+                <FileCard
+                  key={i}
+                  file={file}
+                  onRemove={() => removeAttachment(i)}
+                  className="w-48 bg-background border-dashed"
+                />
+              ))}
+            </div>
+          )}
+
           {/* Input area */}
           <div className="px-4 pb-3 pt-4">
             <Textarea
@@ -72,6 +163,7 @@ export function ChatInput({
               value={value}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               onCompositionStart={() => (isComposing.current = true)}
               onCompositionEnd={() => {
                 requestAnimationFrame(() => {
@@ -95,9 +187,14 @@ export function ChatInput({
                 size="icon"
                 className="size-9 rounded-xl hover:bg-accent"
                 title={t("hero.attachFile")}
-                disabled={disabled}
+                disabled={disabled || isUploading}
+                onClick={() => fileInputRef.current?.click()}
               >
-                <Plus className="size-4" />
+                {isUploading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Plus className="size-4" />
+                )}
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -161,8 +258,15 @@ export function ChatInput({
                 <Mic className="size-4" />
               </Button>
               <Button
-                onClick={onSend}
-                disabled={!value.trim() || disabled}
+                onClick={() => {
+                  onSend(attachments);
+                  setAttachments([]);
+                }}
+                disabled={
+                  (!value.trim() && attachments.length === 0) ||
+                  disabled ||
+                  isUploading
+                }
                 size="icon"
                 className="size-9 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
                 title={t("hero.send")}

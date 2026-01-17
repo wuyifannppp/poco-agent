@@ -14,49 +14,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface CreateProjectDialogProps {
+interface RenameProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateProject: (name: string) => void;
+  projectName: string;
+  onRename: (newName: string) => void;
 }
 
-/**
- * Dialog for creating a new project
- * Replaces the native prompt() function
- */
-export function CreateProjectDialog({
+export function RenameProjectDialog({
   open,
   onOpenChange,
-  onCreateProject,
-}: CreateProjectDialogProps) {
+  projectName,
+  onRename,
+}: RenameProjectDialogProps) {
   const { t } = useT("translation");
-  const [projectName, setProjectName] = React.useState("");
+  const [name, setName] = React.useState(projectName);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
-    setMounted(true);
-  }, []);
+    setName(projectName);
+  }, [projectName]);
 
-  // Reset input when dialog opens
   React.useEffect(() => {
     if (open) {
-      setProjectName("");
-      // Focus input after dialog opens
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 100);
+        inputRef.current?.select();
+      }, 50);
     }
   }, [open]);
 
-  if (!mounted) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (projectName.trim()) {
-      onCreateProject(projectName.trim());
-      onOpenChange(false);
-    }
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === projectName) return;
+    onRename(trimmed);
+    onOpenChange(false);
   };
 
   return (
@@ -64,20 +57,22 @@ export function CreateProjectDialog({
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{t("sidebar.newProject")}</DialogTitle>
+            <DialogTitle>{t("project.rename")}</DialogTitle>
             <DialogDescription>
-              {t("sidebar.newProjectPrompt")}
+              {t("project.renameDescription", "请输入新的项目名称")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="project-name">{t("sidebar.projects")}</Label>
+              <Label htmlFor="project-name">
+                {t("project.nameLabel", "项目名称")}
+              </Label>
               <Input
                 ref={inputRef}
                 id="project-name"
-                value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
-                placeholder={t("sidebar.newProject")}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t("project.namePlaceholder", "请输入项目名称")}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     onOpenChange(false);
@@ -92,10 +87,10 @@ export function CreateProjectDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              取消
+              {t("common.cancel", "取消")}
             </Button>
-            <Button type="submit" disabled={!projectName.trim()}>
-              创建
+            <Button type="submit" disabled={!name.trim()}>
+              {t("common.save", "保存")}
             </Button>
           </DialogFooter>
         </form>

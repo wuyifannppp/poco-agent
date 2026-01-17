@@ -5,6 +5,7 @@ import type {
   ChatMessage,
   ChatSession,
   MessageRole,
+  InputFile,
 } from "@/features/chat/types";
 
 /**
@@ -46,7 +47,11 @@ interface UseChatCreationReturn {
   /**
    * Add a message to the session
    */
-  addMessage: (content: string, role: MessageRole) => Promise<void>;
+  addMessage: (
+    content: string,
+    role: MessageRole,
+    attachments?: InputFile[],
+  ) => Promise<void>;
   /**
    * Update the model for the session
    */
@@ -172,7 +177,7 @@ export function useChatCreation({
 
   // Add a new message to the session
   const addMessage = React.useCallback(
-    async (content: string, role: MessageRole) => {
+    async (content: string, role: MessageRole, attachments?: InputFile[]) => {
       if (!session) return;
 
       // Add user message to local state
@@ -197,7 +202,14 @@ export function useChatCreation({
       // If user message, create execution session and redirect
       if (role === "user") {
         try {
-          const response = await createSessionAction({ prompt: content });
+          const config =
+            attachments && attachments.length > 0
+              ? { input_files: attachments }
+              : undefined;
+          const response = await createSessionAction({
+            prompt: content,
+            config,
+          });
           // Save user prompt to localStorage for execution page
           localStorage.setItem(`session_prompt_${response.sessionId}`, content);
           // Redirect to execution page

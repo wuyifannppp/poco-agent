@@ -9,6 +9,7 @@ import type { ModelInfo } from "@/types";
 import { ChatHeader } from "../chat/chat-header";
 import { ChatMessageList } from "../chat/chat-message-list";
 import { ChatInput } from "../chat/chat-input";
+import type { InputFile } from "@/features/chat/types";
 
 export interface ChatContainerProps {
   taskId?: string;
@@ -34,10 +35,11 @@ export function ChatContainer({ taskId, isNewChat }: ChatContainerProps) {
     );
   }
 
-  const handleSend = async () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async (attachments?: InputFile[]) => {
+    if (!inputValue.trim() && (!attachments || attachments.length === 0))
+      return;
     setIsSending(true);
-    await addMessage(inputValue, "user");
+    await addMessage(inputValue, "user", attachments);
     setInputValue("");
     // We don't set isSending(false) because we expect a redirect or the hook handles it
   };

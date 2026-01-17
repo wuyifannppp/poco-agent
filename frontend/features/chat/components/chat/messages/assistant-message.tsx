@@ -65,7 +65,7 @@ export function AssistantMessage({ message }: AssistantMessageProps) {
       <div className="flex-1 min-w-0 space-y-2 w-full">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-bold text-foreground/50 tracking-wide uppercase shrink-0">
-            COCO
+            Poco
           </span>
           <span className="text-[10px] text-muted-foreground/40 shrink-0">
             {message.timestamp && !isNaN(new Date(message.timestamp).getTime())

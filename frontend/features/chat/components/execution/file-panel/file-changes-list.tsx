@@ -1,12 +1,19 @@
 "use client";
 
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useT } from "@/lib/i18n/client";
 import { FileChangeCard } from "./file-change-card";
 import type { FileChange } from "@/features/chat/types";
 
 interface FileChangesListProps {
   fileChanges?: FileChange[];
-  sessionStatus?: "running" | "accepted" | "completed" | "failed" | "cancelled";
+  sessionStatus?:
+    | "running"
+    | "accepted"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "stopped";
   onFileClick?: (filePath: string) => void;
 }
 
@@ -18,6 +25,7 @@ interface FileChangesSummaryProps {
 }
 
 function FileChangesSummary({ fileChanges }: FileChangesSummaryProps) {
+  const { t } = useT("translation");
   const summary = fileChanges.reduce(
     (acc, change) => {
       switch (change.status) {
@@ -44,41 +52,54 @@ function FileChangesSummary({ fileChanges }: FileChangesSummaryProps) {
     <div className="flex items-center gap-4 px-4 py-3 bg-muted/30 border-b border-border">
       <div className="flex items-center gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">总计</span>
-          <span className="font-semibold">{fileChanges.length} 个文件</span>
+          <span className="text-muted-foreground">
+            {t("artifacts.summary.total")}
+          </span>
+          <span className="font-semibold">
+            {fileChanges.length} {t("artifacts.summary.totalFiles", "个文件")}
+          </span>
         </div>
 
         {summary.added > 0 && (
           <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
             <div className="w-2 h-2 rounded-full bg-green-500" />
-            <span>+{summary.added} 新增</span>
+            <span>
+              +{summary.added} {t("artifacts.summary.added")}
+            </span>
           </div>
         )}
 
         {summary.modified > 0 && (
           <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
             <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <span>{summary.modified} 修改</span>
+            <span>
+              {summary.modified} {t("artifacts.summary.modified")}
+            </span>
           </div>
         )}
 
         {summary.deleted > 0 && (
           <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
             <div className="w-2 h-2 rounded-full bg-red-500" />
-            <span>-{summary.deleted} 删除</span>
+            <span>
+              -{summary.deleted} {t("artifacts.summary.deleted")}
+            </span>
           </div>
         )}
 
         {summary.renamed > 0 && (
           <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
             <div className="w-2 h-2 rounded-full bg-purple-500" />
-            <span>{summary.renamed} 重命名</span>
+            <span>
+              {summary.renamed} {t("artifacts.summary.renamed")}
+            </span>
           </div>
         )}
 
         {summary.totalLines > 0 && (
           <div className="ml-auto text-muted-foreground">
-            {summary.totalLines.toLocaleString()} 行变更
+            {summary.totalLines.toLocaleString()}{" "}
+            {t("artifacts.summary.lineChanges")}
           </div>
         )}
       </div>
@@ -94,11 +115,13 @@ export function FileChangesList({
   sessionStatus,
   onFileClick,
 }: FileChangesListProps) {
+  const { t } = useT("translation");
+
   if (fileChanges.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-muted-foreground">
-          <p className="text-sm">暂无文件变更</p>
+          <p className="text-sm">{t("artifacts.empty.noChanges")}</p>
         </div>
       </div>
     );

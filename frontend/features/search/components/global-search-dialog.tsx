@@ -31,24 +31,11 @@ export function GlobalSearchDialog({
   const router = useRouter();
   const [searchQuery, setSearchQuery] = React.useState("");
   const { tasks, projects, messages, isLoading } = useSearchData();
+  const [mounted, setMounted] = React.useState(false);
 
-  const handleSelect = (type: string, id: string) => {
-    onOpenChange(false);
-
-    switch (type) {
-      case "task":
-        router.push(`/chat/${id}`);
-        break;
-      case "project":
-        // TODO: Navigate to project page when implemented
-        router.push(`/chat/new`);
-        break;
-      case "message":
-        // Navigate to chat page and scroll to message
-        router.push(`/chat/${id}`);
-        break;
-    }
-  };
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Filter tasks by search query
   const filteredTasks = React.useMemo(
@@ -87,6 +74,26 @@ export function GlobalSearchDialog({
     filteredTasks.length > 0 ||
     filteredProjects.length > 0 ||
     filteredMessages.length > 0;
+
+  const handleSelect = (type: string, id: string) => {
+    onOpenChange(false);
+
+    switch (type) {
+      case "task":
+        router.push(`/chat/${id}`);
+        break;
+      case "project":
+        // TODO: Navigate to project page when implemented
+        router.push(`/chat/new`);
+        break;
+      case "message":
+        // Navigate to chat page and scroll to message
+        router.push(`/chat/${id}`);
+        break;
+    }
+  };
+
+  if (!mounted) return null;
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>

@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
-import { listTaskHistoryAction } from "@/features/projects/actions/project-actions";
+import {
+  listTaskHistoryAction,
+  moveTaskToProjectAction,
+} from "@/features/projects/actions/project-actions";
 import type { TaskHistoryItem } from "@/features/projects/types";
 
 interface UseTaskHistoryOptions {
@@ -73,15 +76,30 @@ export function useTaskHistory(options: UseTaskHistoryOptions = {}) {
     [taskHistory],
   );
 
-  const moveTask = useCallback((taskId: string, projectId: string | null) => {
-    setTaskHistory((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? { ...task, projectId: projectId ?? undefined }
-          : task,
-      ),
-    );
-  }, []);
+  const moveTask = useCallback(
+    async (taskId: string, projectId: string | null) => {
+      let previousTasks: TaskHistoryItem[] = [];
+      setTaskHistory((prev) => {
+        previousTasks = prev;
+        return prev.map((task) =>
+          task.id === taskId
+            ? { ...task, projectId: projectId ?? undefined }
+            : task,
+        );
+      });
+
+      try {
+        await moveTaskToProjectAction({
+          sessionId: taskId,
+          projectId: projectId ?? null,
+        });
+      } catch (error) {
+        console.error("Failed to move task to project", error);
+        setTaskHistory(previousTasks);
+      }
+    },
+    [],
+  );
 
   return {
     taskHistory,

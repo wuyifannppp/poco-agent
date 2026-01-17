@@ -14,7 +14,13 @@ import type { FileChange } from "@/features/chat/types";
 
 interface FileChangeCardProps {
   change: FileChange;
-  sessionStatus?: "running" | "accepted" | "completed" | "failed" | "cancelled";
+  sessionStatus?:
+    | "running"
+    | "accepted"
+    | "completed"
+    | "failed"
+    | "cancelled"
+    | "stopped";
   onFileClick?: () => void;
 }
 

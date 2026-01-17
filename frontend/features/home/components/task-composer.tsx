@@ -26,6 +26,8 @@ import {
   type ConnectorType,
 } from "@/features/home/model/connectors";
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
 export function TaskComposer({
   textareaRef,
   value,
@@ -54,16 +56,24 @@ export function TaskComposer({
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`文件过大，最大支持 100MB`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
     try {
       setIsUploading(true);
       const uploadedFile = await uploadAttachment(file);
       const newAttachments = [...attachments, uploadedFile];
       setAttachments(newAttachments);
       onAttachmentsChange?.(newAttachments); // Notify parent of ALL attachments
-      toast.success("文件上传成功");
+      toast.success(t("hero.toasts.uploadSuccess", "文件上传成功"));
     } catch (error) {
       console.error("Upload failed:", error);
-      toast.error("文件上传失败");
+      toast.error(t("hero.toasts.uploadFailed", "文件上传失败"));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -76,6 +86,36 @@ export function TaskComposer({
     const newAttachments = attachments.filter((_, i) => i !== index);
     setAttachments(newAttachments);
     onAttachmentsChange?.(newAttachments);
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const file = Array.from(items)
+      .find((item) => item.kind === "file")
+      ?.getAsFile();
+
+    if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(t("hero.toasts.fileTooLarge", "文件过大，最大支持 100MB"));
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const uploadedFile = await uploadAttachment(file);
+      const newAttachments = [...attachments, uploadedFile];
+      setAttachments(newAttachments);
+      onAttachmentsChange?.(newAttachments);
+      toast.success(t("hero.toasts.uploadSuccess", "文件上传成功"));
+    } catch (error) {
+      console.error("Upload failed:", error);
+      toast.error(t("hero.toasts.uploadFailed", "文件上传失败"));
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Reset attachments when value is cleared (successful send)
@@ -148,17 +188,22 @@ export function TaskComposer({
           onChange={(e) => onChange(e.target.value)}
           onCompositionStart={() => (isComposing.current = true)}
           onCompositionEnd={() => {
-            setTimeout(() => {
+            requestAnimationFrame(() => {
               isComposing.current = false;
-            }, 0);
+            });
           }}
+          onPaste={handlePaste}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               if (e.shiftKey) {
                 // Allow default behavior (newline)
                 return;
               }
-              if (e.nativeEvent.isComposing || isComposing.current) {
+              if (
+                e.nativeEvent.isComposing ||
+                isComposing.current ||
+                e.keyCode === 229
+              ) {
                 return;
               }
               e.preventDefault();
@@ -201,14 +246,14 @@ export function TaskComposer({
                 className="cursor-pointer"
               >
                 <FileText className="mr-2 size-4" />
-                <span>从本地文件导入</span>
+                <span>{t("hero.importLocal", "从本地文件导入")}</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 disabled
                 className="opacity-50 cursor-not-allowed"
               >
                 <Figma className="mr-2 size-4" />
-                <span>从 Figma 导入 (即将推出)</span>
+                <span>{t("hero.importFigma", "从 Figma 导入 (即将推出)")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -241,7 +286,9 @@ export function TaskComposer({
                       <span>{connector.title}</span>
                     </div>
                     {/* TODO: Implement connection logic */}
-                    <span className="text-xs font-medium">连接</span>
+                    <span className="text-xs font-medium">
+                      {t("hero.connect", "连接")}
+                    </span>
                   </div>
                 </DropdownMenuItem>
               ))}

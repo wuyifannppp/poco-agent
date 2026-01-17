@@ -22,6 +22,7 @@ const configSchema = z.object({
 const createSessionSchema = z.object({
   prompt: z.string().trim().min(1, "请输入任务内容"),
   config: configSchema.optional(),
+  projectId: z.string().uuid().optional(),
 });
 
 const sendMessageSchema = z
@@ -44,8 +45,8 @@ export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
 
 export async function createSessionAction(input: CreateSessionInput) {
-  const { prompt, config } = createSessionSchema.parse(input);
-  const result = await chatService.createSession(prompt, config);
+  const { prompt, config, projectId } = createSessionSchema.parse(input);
+  const result = await chatService.createSession(prompt, config, projectId);
   return {
     sessionId: result.session_id,
     runId: result.run_id,

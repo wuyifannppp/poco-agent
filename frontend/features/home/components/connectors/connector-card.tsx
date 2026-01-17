@@ -23,7 +23,7 @@ export function ConnectorCard({
         "group flex items-start gap-4 p-5 rounded-2xl border transition-all duration-300",
         isComingSoon
           ? "border-white/5 bg-white/[0.02] opacity-40 grayscale cursor-not-allowed"
-          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20 hover:scale-[1.02] cursor-pointer shadow-lg hover:shadow-primary/5",
+          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20 hover:scale-[1.02] cursor-pointer shadow-lg",
       )}
       onClick={() => {
         if (!isComingSoon) {
@@ -31,12 +31,12 @@ export function ConnectorCard({
         }
       }}
     >
-      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] border border-white/10 group-hover:bg-primary/10 group-hover:border-primary/20 transition-colors">
-        <connector.icon className="size-6 text-muted-foreground group-hover:text-primary transition-colors" />
+      <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] border border-white/10 group-hover:bg-white/[0.08] group-hover:border-white/15 transition-colors">
+        <connector.icon className="size-6 text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="font-semibold text-base truncate group-hover:text-primary transition-colors">
+          <div className="font-semibold text-base truncate">
             {connector.title}
           </div>
           {isComingSoon && (
@@ -72,13 +72,11 @@ export function CapabilityFeature({
 }: CapabilityFeatureProps) {
   return (
     <div className="group p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all flex items-start gap-3">
-      <div className="size-8 rounded-lg bg-white/[0.03] flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-        <Icon className="size-4 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+      <div className="size-8 rounded-lg bg-white/[0.03] flex items-center justify-center shrink-0 group-hover:bg-white/[0.06] transition-colors">
+        <Icon className="size-4 text-muted-foreground/60 group-hover:text-muted-foreground transition-colors" />
       </div>
       <div className="min-w-0">
-        <div className="font-bold text-sm mb-0.5 truncate group-hover:text-primary transition-colors">
-          {title}
-        </div>
+        <div className="font-bold text-sm mb-0.5 truncate">{title}</div>
         <div className="text-[11px] text-muted-foreground/50 leading-snug line-clamp-2">
           {desc}
         </div>

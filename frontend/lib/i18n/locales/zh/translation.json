@@ -80,7 +80,8 @@
     "model": "模型",
     "tokens": "令牌",
     "duration": "耗时",
-    "executionTitle": "AI 执行"
+    "executionTitle": "AI 执行",
+    "inputPlaceholder": "Enter 发送，Shift + Enter 换行"
   },
   "status": {
     "pending": "待处理",
@@ -118,6 +119,34 @@
     "chat": "对话",
     "artifacts": "产物",
     "status": "状态"
+  },
+  "artifacts": {
+    "empty": {
+      "creating": "Poco 正在创造中...",
+      "working": "Agent is working on your task",
+      "noChanges": "暂无文件变更",
+      "description": "AI 执行产生的文件变更将在此处展示"
+    },
+    "viewer": {
+      "loadingEngine": "正在加载预览引擎...",
+      "loadingDoc": "正在读取文档...",
+      "fetchError": "无法获取文档内容",
+      "retry": "重试",
+      "selectFile": "请从右侧选择文件进行预览",
+      "supportedFormats": "支持 PDF、Office 文档及常见图片格式",
+      "processing": "文件处理中",
+      "notSupported": "该格式暂不支持预览",
+      "openInNewWindow": "新窗口打开",
+      "downloadOriginal": "下载原文件"
+    },
+    "summary": {
+      "total": "总计",
+      "added": "新增",
+      "modified": "修改",
+      "deleted": "删除",
+      "renamed": "重命名",
+      "lineChanges": "行变更"
+    }
   },
   "search": {
     "placeholder": "搜索任务、项目、消息...",
@@ -173,17 +202,22 @@
       "secretToggle": "隐藏值（API Key）",
       "addButton": "添加变量",
       "refresh": "刷新",
-      "scope": {
-        "system": "系统",
-        "user": "个人"
-      },
       "toasts": {
         "created": "环境变量已创建",
         "updated": "环境变量已更新",
         "deleted": "环境变量已删除",
         "error": "操作失败，请稍后重试",
         "refreshed": "环境变量已刷新",
-        "keyRequired": "变量名不能为空"
+        "keyRequired": "变量名不能为空",
+        "copied": "已复制",
+        "copyFailed": "复制失败"
+      },
+      "scopeLabel": "作用域",
+      "scope": {
+        "system": "系统",
+        "user": "个人",
+        "global": "全局变量",
+        "mcp": "MCP 变量"
       }
     },
     "tags": {
@@ -253,7 +287,14 @@
       "actions": {
         "enable": "启用",
         "disable": "停用",
-        "settings": "设置"
+        "settings": "设置",
+        "configure": "配置 MCP 服务器"
+      },
+      "dialog": {
+        "title": "MCP 标题 (唯一)",
+        "displayName": "显示名称",
+        "jsonConfig": "完整的 JSON 配置",
+        "required": "必填"
       },
       "sections": {
         "status": "运行状态",
@@ -277,7 +318,14 @@
   "project": {
     "subtitle": "{{count}} 个任务",
     "share": "分享项目",
-    "settings": "项目设置"
+    "settings": "项目设置",
+    "rename": "重命名项目",
+    "renameDescription": "请输入新的项目名称",
+    "nameLabel": "项目名称",
+    "namePlaceholder": "请输入项目名称",
+    "delete": "删除项目",
+    "deleteDescription": "删除项目后，项目中的所有任务将回到任务清单。",
+    "deleteConfirm": "删除"
   },
   "userMenu": {
     "credits": "积分",
@@ -291,5 +339,10 @@
     "modify": "修改",
     "send": "立即发送",
     "delete": "删除"
+  },
+  "common": {
+    "cancel": "取消",
+    "delete": "删除",
+    "save": "保存"
   }
 }

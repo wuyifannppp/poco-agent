@@ -10,23 +10,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { FileCard } from "@/components/shared/file-card";
+import { useT } from "@/lib/i18n/client";
 
 interface ChatInputProps {
   onSend: (content: string, attachments?: InputFile[]) => void;
   disabled?: boolean;
 }
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
+
 /**
  * Chat input component with send button
- *
- * @example
- * ```tsx
- * <ChatInput
- *   onSend={(content) => console.log(content)}
- * />
- * ```
  */
 export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
+  const { t } = useT("translation");
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<InputFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,10 +43,11 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
   }, [value, attachments, onSend]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       // Only send on Enter if not composing (IME input in progress)
       if (e.key === "Enter") {
         if (e.shiftKey) {
+          // Allow default behavior for newline
           return;
         }
         if (
@@ -79,6 +77,14 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`文件过大，最大支持 100MB`);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -152,16 +158,26 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <input
-          type="text"
+        <textarea
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onCompositionStart={handleCompositionStart}
           onCompositionEnd={handleCompositionEnd}
-          placeholder=""
+          placeholder={t("chat.inputPlaceholder")}
           disabled={disabled}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          rows={1}
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 resize-none overflow-hidden"
+          style={{
+            minHeight: "1.5rem",
+            maxHeight: "10rem",
+          }}
+          onInput={(e) => {
+            // Auto-resize textarea
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = "auto";
+            target.style.height = `${Math.min(target.scrollHeight, 160)}px`;
+          }}
         />
         <button
           onClick={handleSend}

@@ -38,7 +38,7 @@ interface Project {
 
 interface DraggableTaskProps {
   task: TaskHistoryItem;
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => Promise<void> | void;
   onMoveClick: (task: TaskHistoryItem) => void;
   isSelectionMode?: boolean;
   isSelected?: boolean;
@@ -143,7 +143,7 @@ function DraggableTask({
                 isSelectionMode && "ml-1",
               )}
             >
-              {task.title}
+              {task.title || t("chat.newChat")}
             </span>
           </div>
         ) : (
@@ -177,7 +177,7 @@ function DraggableTask({
                 "flex-1 min-w-0 truncate text-sm group-data-[collapsible=icon]:hidden",
               )}
             >
-              {task.title}
+              {task.title || t("chat.newChat")}
             </span>
           </>
         )}
@@ -243,7 +243,7 @@ export function TaskHistoryList({
   onEnableSelectionMode,
 }: {
   tasks: TaskHistoryItem[];
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => Promise<void> | void;
   onRenameTask?: (taskId: string, newName: string) => void;
   onMoveTaskToProject?: (taskId: string, projectId: string | null) => void;
   projects?: Project[];

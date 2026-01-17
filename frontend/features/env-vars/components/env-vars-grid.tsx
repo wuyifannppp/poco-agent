@@ -4,7 +4,6 @@ import * as React from "react";
 import {
   Trash2,
   Loader2,
-  Pencil,
   Eye,
   EyeOff,
   Copy,
@@ -22,34 +21,9 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import type { EnvVar } from "@/features/env-vars/types";
-
-// Mock data for env vars (kept for fallback)
-const MOCK_ENV_VARS: EnvVar[] = [
-  {
-    id: 1,
-    user_id: "user1",
-    key: "OPENAI_API_KEY",
-    value: "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    is_secret: true,
-    scope: "global",
-    created_at: "2024-01-01",
-    updated_at: "2024-01-15",
-    description: null,
-  },
-  {
-    id: 2,
-    user_id: "user1",
-    key: "ANTHROPIC_API_KEY",
-    value: "sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    is_secret: true,
-    scope: "global",
-    created_at: "2024-01-02",
-    updated_at: "2024-01-10",
-    description: null,
-  },
-];
 
 interface EnvVarsGridProps {
   envVars?: EnvVar[];
@@ -64,12 +38,11 @@ export function EnvVarsGrid({
   onDelete,
   onSave,
 }: EnvVarsGridProps) {
+  const { t } = useT("translation");
   const [visibleKeys, setVisibleKeys] = React.useState<Set<string>>(new Set());
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const inputRefs = React.useRef<Map<number, HTMLInputElement>>(new Map());
-
-  const envVars = propEnvVars?.length ? propEnvVars : MOCK_ENV_VARS;
 
   const toggleVisibility = (key: string) => {
     setVisibleKeys((prev) => {
@@ -88,10 +61,10 @@ export function EnvVarsGrid({
     try {
       await navigator.clipboard.writeText(value);
       setCopiedKey(key);
-      toast.success("已复制");
+      toast.success(t("library.envVars.toasts.copied"));
       setTimeout(() => setCopiedKey(null), 1500);
     } catch {
-      toast.error("复制失败");
+      toast.error(t("library.envVars.toasts.copyFailed"));
     }
   };
 
@@ -135,12 +108,13 @@ export function EnvVarsGrid({
 
   // Grouping Logic
   const groupedVars = React.useMemo(() => {
+    const vars = propEnvVars?.length ? propEnvVars : [];
     const groups = {
       mcp: [] as EnvVar[],
       user: [] as EnvVar[],
       global: [] as EnvVar[],
     };
-    envVars.forEach((v) => {
+    vars.forEach((v) => {
       const scope = (v.scope || "user") as keyof typeof groups;
       if (groups[scope]) {
         groups[scope].push(v);
@@ -149,16 +123,16 @@ export function EnvVarsGrid({
       }
     });
     return groups;
-  }, [envVars]);
+  }, [propEnvVars]);
 
   const getScopeLabel = (scope: string) => {
     switch (scope) {
       case "global":
-        return "全局变量"; // Global Vars
+        return t("library.envVars.scope.global");
       case "mcp":
-        return "MCP 变量"; // MCP Vars
+        return t("library.envVars.scope.mcp");
       case "user":
-        return "用户变量"; // User Vars
+        return t("library.envVars.scope.user");
       default:
         return scope;
     }
@@ -217,9 +191,14 @@ export function EnvVarsGrid({
                           className={cn(
                             "font-mono text-sm",
                             !isEditing &&
-                              "cursor-default text-muted-foreground",
+                              "cursor-pointer text-muted-foreground",
                             isEditing && "text-foreground",
                           )}
+                          onClick={() => {
+                            if (!isEditing) {
+                              startEditing(envVar.id);
+                            }
+                          }}
                           onKeyDown={(e) => handleKeyDown(e, envVar)}
                           onBlur={(e) => {
                             if (isEditing) {
@@ -230,7 +209,11 @@ export function EnvVarsGrid({
                         {envVar.is_secret && (
                           <InputGroupButton
                             onClick={() => toggleVisibility(envVar.key)}
-                            title={isVisible ? "隐藏" : "显示"}
+                            title={
+                              isVisible
+                                ? t("library.envVars.viewer.hide", "Hide")
+                                : t("library.envVars.viewer.show", "Show")
+                            }
                             className="text-muted-foreground hover:text-foreground"
                           >
                             {isVisible ? (
@@ -242,7 +225,7 @@ export function EnvVarsGrid({
                         )}
                         <InputGroupButton
                           onClick={() => handleCopy(envVar.value, envVar.key)}
-                          title="复制"
+                          title={t("library.envVars.copy")}
                           className="text-muted-foreground hover:text-foreground"
                         >
                           {isCopied ? (
@@ -263,18 +246,9 @@ export function EnvVarsGrid({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="size-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => startEditing(envVar.id)}
-                            title="修改"
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             className="size-8 text-muted-foreground hover:text-destructive"
                             onClick={() => onDelete?.(envVar.id)}
-                            title="删除"
+                            title={t("common.delete")}
                           >
                             <Trash2 className="size-4" />
                           </Button>

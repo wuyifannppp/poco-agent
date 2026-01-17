@@ -13,6 +13,7 @@ export interface TaskEnqueueRequest {
   schedule_mode?: string; // defaults to "immediate"
   timezone?: string | null;
   scheduled_at?: string | null; // ISO datetime
+  project_id?: string | null;
 }
 
 export interface TaskEnqueueResponse {

@@ -2,7 +2,12 @@ export interface ProjectItem {
   id: string;
   name: string;
   icon?: string;
-  taskCount: number;
+  /** Number of tasks under this project, if the API returns it */
+  taskCount?: number;
+  /** Owning user identifier */
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TaskHistoryItem {

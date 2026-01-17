@@ -34,9 +34,29 @@ function FileTreeItem({
 }) {
   const [isExpanded, setIsExpanded] = React.useState(level === 0);
 
-  const getFileIcon = (name: string, type: string) => {
+  // Check if this node or any of its children is the selected one
+  const containsSelected = React.useMemo(() => {
+    if (!selectedId) return false;
+    const check = (n: FileNode): boolean => {
+      if (n.id === selectedId) return true;
+      if (n.children) {
+        return n.children.some((child) => check(child));
+      }
+      return false;
+    };
+    return check(node);
+  }, [node, selectedId]);
+
+  // Auto-expand if selection is found within subtree
+  React.useEffect(() => {
+    if (containsSelected && node.type === "folder") {
+      setIsExpanded(true);
+    }
+  }, [containsSelected, node.type]);
+
+  const getFileIcon = (name: string, type: string, className?: string) => {
     if (type === "folder") {
-      return <Folder className="size-4 text-muted-foreground" />;
+      return <Folder className={cn("size-4", className)} />;
     }
 
     const ext = name.split(".").pop()?.toLowerCase();
@@ -46,11 +66,11 @@ function FileTreeItem({
       case "pdf":
       case "docx":
       case "doc":
-        return <FileText className="size-4 text-muted-foreground" />;
+        return <FileText className={cn("size-4", className)} />;
       case "xlsx":
       case "xls":
       case "csv":
-        return <FileText className="size-4 text-muted-foreground" />;
+        return <FileText className={cn("size-4", className)} />;
       case "html":
       case "css":
       case "ts":
@@ -59,15 +79,15 @@ function FileTreeItem({
       case "jsx":
       case "json":
       case "py":
-        return <FileCode className="size-4 text-muted-foreground" />;
+        return <FileCode className={cn("size-4", className)} />;
       case "jpg":
       case "jpeg":
       case "png":
       case "gif":
       case "svg":
-        return <FileImage className="size-4 text-muted-foreground" />;
+        return <FileImage className={cn("size-4", className)} />;
       default:
-        return <FileIcon className="size-4 text-muted-foreground" />;
+        return <FileIcon className={cn("size-4", className)} />;
     }
   };
 
@@ -95,23 +115,32 @@ function FileTreeItem({
     <div className="w-full min-w-0 max-w-full">
       <div
         className={cn(
-          "flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden min-w-0 w-full max-w-full",
+          "flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors overflow-hidden min-w-0 w-full max-w-full group/item",
           indentClass,
-          selectedId === node.id && "bg-muted",
+          selectedId === node.id
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
         )}
         onClick={handleClick}
       >
-        {node.type === "folder" && (
-          <span className="shrink-0">
-            {isExpanded ? (
-              <ChevronDown className="size-3 text-muted-foreground" />
+        <div className="shrink-0 w-3 flex items-center justify-center">
+          {node.type === "folder" &&
+            (isExpanded ? (
+              <ChevronDown className="size-3 text-sidebar-foreground/70" />
             ) : (
-              <ChevronRight className="size-3 text-muted-foreground" />
-            )}
-          </span>
-        )}
-        <span className="shrink-0">{getFileIcon(node.name, node.type)}</span>
-        <span className="text-sm truncate flex-1 min-w-0 max-w-full overflow-hidden">
+              <ChevronRight className="size-3 text-sidebar-foreground/70" />
+            ))}
+        </div>
+        <span className="shrink-0">
+          {getFileIcon(
+            node.name,
+            node.type,
+            selectedId === node.id
+              ? "text-sidebar-accent-foreground"
+              : "text-sidebar-foreground/70",
+          )}
+        </span>
+        <span className="text-sm truncate flex-1 min-w-0" title={node.name}>
           {node.name}
         </span>
       </div>
@@ -143,7 +172,7 @@ export function FileSidebar({
   }
 
   return (
-    <div className="w-64 border-l border-border bg-muted/30 flex flex-col">
+    <div className="w-64 border-l border-sidebar-border bg-sidebar flex flex-col">
       <ScrollArea className="flex-1">
         <div className="px-2 py-2">
           {files.map((file) => (

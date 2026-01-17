@@ -10,6 +10,7 @@ import { SkillsGrid } from "@/features/skills/components/skills-grid";
 
 import { useProjects } from "@/features/projects/hooks/use-projects";
 import { useTaskHistory } from "@/features/projects/hooks/use-task-history";
+import { useProjectDeletion } from "@/features/projects/hooks/use-project-deletion";
 import type { ProjectItem, TaskHistoryItem } from "@/features/projects/types";
 import type { SkillPreset, UserSkillInstall } from "@/features/skills/types";
 import { SettingsDialog } from "@/features/settings/components/settings-dialog";
@@ -36,11 +37,16 @@ export function SkillsPageClient({
   const [installs, _setInstalls] =
     useState<UserSkillInstall[]>(initialInstalls);
 
-  const { projects, addProject } = useProjects({
+  const { projects, addProject, updateProject, removeProject } = useProjects({
     initialProjects,
   });
-  const { taskHistory, removeTask } = useTaskHistory({
+  const { taskHistory, removeTask, moveTask } = useTaskHistory({
     initialTasks: initialTaskHistory,
+  });
+  const deleteProject = useProjectDeletion({
+    taskHistory,
+    moveTask,
+    removeProject,
   });
 
   // TODO: Connect to real API
@@ -76,6 +82,14 @@ export function SkillsPageClient({
     setLoadingId(null);
   };
 
+  const handleRenameProject = (projectId: string, newName: string) => {
+    updateProject(projectId, { name: newName });
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    await deleteProject(projectId);
+  };
+
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-svh w-full overflow-hidden bg-background">
@@ -85,6 +99,8 @@ export function SkillsPageClient({
           onNewTask={() => {}}
           onDeleteTask={removeTask}
           onCreateProject={addProject}
+          onRenameProject={handleRenameProject}
+          onDeleteProject={handleDeleteProject}
           onOpenSettings={() => setIsSettingsOpen(true)}
         />
 

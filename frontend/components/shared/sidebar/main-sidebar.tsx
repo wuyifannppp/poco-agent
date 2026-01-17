@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import {
   Library,
   MessageSquare,
@@ -47,9 +47,7 @@ import {
 import type { ProjectItem, TaskHistoryItem } from "@/features/projects/types";
 import { TaskHistoryList } from "./task-history-list";
 import { CollapsibleProjectItem } from "./collapsible-project-item";
-import { GlobalSearchDialog } from "@/features/search/components/global-search-dialog";
 import { useSearchDialog } from "@/features/search/hooks/use-search-dialog";
-import { CreateProjectDialog } from "@/features/projects/components/create-project-dialog";
 
 const TOP_NAV_ITEMS = [
   { id: "search", labelKey: "sidebar.search", icon: Search, href: null },
@@ -75,7 +73,7 @@ function DroppableAllTasksGroup({
 }: {
   title: string;
   tasks: TaskHistoryItem[];
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => Promise<void> | void;
   onRenameTask?: (taskId: string, newName: string) => void;
   onMoveTaskToProject?: (taskId: string, projectId: string | null) => void;
   projects: ProjectItem[];
@@ -132,35 +130,58 @@ export function MainSidebar({
   onDeleteTask,
   onRenameTask,
   onMoveTaskToProject,
-  onCreateProject,
+  onRenameProject,
+  onDeleteProject,
   onOpenSettings,
 }: {
   projects: ProjectItem[];
   taskHistory: TaskHistoryItem[];
   onNewTask: () => void;
-  onDeleteTask: (taskId: string) => void;
+  onDeleteTask: (taskId: string) => Promise<void> | void;
   onRenameTask?: (taskId: string, newName: string) => void;
   onMoveTaskToProject?: (taskId: string, projectId: string | null) => void;
-  onCreateProject?: (name: string) => void;
+  onRenameProject?: (projectId: string, newName: string) => void;
+  onDeleteProject?: (projectId: string) => Promise<void> | void;
   onOpenSettings?: () => void;
 }) {
   const { t } = useT("translation");
   const router = useRouter();
+  const params = useParams();
   const { toggleSidebar } = useSidebar();
-  const { isSearchOpen, setIsSearchOpen, searchKey } = useSearchDialog();
-  const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] =
-    React.useState(false);
+  const { searchKey } = useSearchDialog();
+  const [, setIsCreateProjectDialogOpen] = React.useState(false);
 
   // Selection Mode State
   const [isSelectionMode, setIsSelectionMode] = React.useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = React.useState<Set<string>>(
     new Set(),
   );
+  const [selectedProjectIds, setSelectedProjectIds] = React.useState<
+    Set<string>
+  >(new Set());
 
   // 管理每个项目的折叠状态
   const [expandedProjects, setExpandedProjects] = React.useState<Set<string>>(
     new Set(),
   );
+
+  // Auto-expand project when navigating to a session
+  React.useEffect(() => {
+    const activeTaskId = params?.id;
+    if (activeTaskId && typeof activeTaskId === "string") {
+      const activeTask = taskHistory.find((task) => task.id === activeTaskId);
+      if (activeTask?.projectId) {
+        setExpandedProjects((prev) => {
+          if (!prev.has(activeTask.projectId!)) {
+            const next = new Set(prev);
+            next.add(activeTask.projectId!);
+            return next;
+          }
+          return prev;
+        });
+      }
+    }
+  }, [params?.id, taskHistory]);
 
   // 过滤出未归类到项目的任务
   const unassignedTasks = React.useMemo(
@@ -192,9 +213,10 @@ export function MainSidebar({
   );
 
   // Selection handlers
-  const handleEnableSelectionMode = React.useCallback((taskId: string) => {
+  const handleEnableTaskSelectionMode = React.useCallback((taskId: string) => {
     setIsSelectionMode(true);
     setSelectedTaskIds(new Set([taskId]));
+    setSelectedProjectIds(new Set());
   }, []);
 
   const handleToggleTaskSelection = React.useCallback((taskId: string) => {
@@ -209,23 +231,63 @@ export function MainSidebar({
     });
   }, []);
 
+  const handleToggleProjectSelection = React.useCallback(
+    (projectId: string) => {
+      setSelectedProjectIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(projectId)) {
+          next.delete(projectId);
+        } else {
+          next.add(projectId);
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const handleEnableProjectSelectionMode = React.useCallback(
+    (projectId: string) => {
+      setIsSelectionMode(true);
+      setSelectedProjectIds(new Set([projectId]));
+      setSelectedTaskIds(new Set());
+    },
+    [],
+  );
+
   const handleCancelSelectionMode = React.useCallback(() => {
     setIsSelectionMode(false);
     setSelectedTaskIds(new Set());
+    setSelectedProjectIds(new Set());
   }, []);
 
-  const handleDeleteSelectedTasks = React.useCallback(() => {
-    selectedTaskIds.forEach((taskId) => {
-      onDeleteTask(taskId);
-    });
-    handleCancelSelectionMode();
-  }, [selectedTaskIds, onDeleteTask, handleCancelSelectionMode]);
+  const handleDeleteSelectedItems = React.useCallback(async () => {
+    await Promise.all(
+      Array.from(selectedTaskIds).map((taskId) =>
+        Promise.resolve(onDeleteTask(taskId)),
+      ),
+    );
 
-  const handleCreateProject = React.useCallback(
-    (name: string) => {
-      onCreateProject?.(name);
+    if (onDeleteProject) {
+      for (const projectId of selectedProjectIds) {
+        await onDeleteProject(projectId);
+      }
+    }
+
+    handleCancelSelectionMode();
+  }, [
+    selectedTaskIds,
+    selectedProjectIds,
+    onDeleteTask,
+    onDeleteProject,
+    handleCancelSelectionMode,
+  ]);
+
+  const handleRenameProject = React.useCallback(
+    (projectId: string, name: string) => {
+      onRenameProject?.(projectId, name);
     },
-    [onCreateProject],
+    [onRenameProject],
   );
 
   const handleProjectClick = React.useCallback(
@@ -399,7 +461,7 @@ export function MainSidebar({
               isSelectionMode={isSelectionMode}
               selectedTaskIds={selectedTaskIds}
               onToggleTaskSelection={handleToggleTaskSelection}
-              onEnableSelectionMode={handleEnableSelectionMode}
+              onEnableSelectionMode={handleEnableTaskSelectionMode}
             />
 
             {/* 项目列表 */}
@@ -432,10 +494,17 @@ export function MainSidebar({
                       onRenameTask={onRenameTask}
                       onMoveTaskToProject={onMoveTaskToProject}
                       allProjects={projects}
+                      onRenameProject={handleRenameProject}
+                      onDeleteProject={onDeleteProject}
                       isSelectionMode={isSelectionMode}
                       selectedTaskIds={selectedTaskIds}
+                      selectedProjectIds={selectedProjectIds}
                       onToggleTaskSelection={handleToggleTaskSelection}
-                      onEnableSelectionMode={handleEnableSelectionMode}
+                      onEnableSelectionMode={handleEnableTaskSelectionMode}
+                      onToggleProjectSelection={handleToggleProjectSelection}
+                      onEnableProjectSelectionMode={
+                        handleEnableProjectSelectionMode
+                      }
                     />
                   ))}
                 </SidebarMenu>
@@ -458,14 +527,14 @@ export function MainSidebar({
               </Button>
 
               <div className="text-xs text-muted-foreground font-medium">
-                {selectedTaskIds.size}
+                {selectedTaskIds.size + selectedProjectIds.size}
               </div>
 
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={handleDeleteSelectedTasks}
-                disabled={selectedTaskIds.size === 0}
+                onClick={handleDeleteSelectedItems}
+                disabled={selectedTaskIds.size + selectedProjectIds.size === 0}
                 className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                 title={t("common.delete") || "删除"}
               >
@@ -496,19 +565,6 @@ export function MainSidebar({
         </SidebarFooter>
 
         <SidebarRail />
-
-        {/* Global Search Dialog */}
-        <GlobalSearchDialog
-          open={isSearchOpen}
-          onOpenChange={setIsSearchOpen}
-        />
-
-        {/* Create Project Dialog */}
-        <CreateProjectDialog
-          open={isCreateProjectDialogOpen}
-          onOpenChange={setIsCreateProjectDialogOpen}
-          onCreateProject={handleCreateProject}
-        />
       </Sidebar>
     </DndContext>
   );

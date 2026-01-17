@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -59,14 +60,14 @@ export function McpSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl p-0 gap-0 overflow-hidden h-[600px] flex flex-col">
-        <DialogHeader className="px-6 py-4 border-b flex-shrink-0 bg-muted/5">
+      <DialogContent className="max-w-2xl p-0 gap-0">
+        <DialogHeader className="px-6 py-4 border-b bg-muted/5">
           <DialogTitle className="text-lg font-semibold">
             {t("library.mcpLibrary.actions.configure", "配置 MCP 服务器")}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 bg-background space-y-6">
+        <div className="p-6 bg-background space-y-6">
           {/* Name Fields Section */}
           <div className="space-y-4">
             <div className="space-y-2">
@@ -94,23 +95,24 @@ export function McpSettingsDialog({
           </div>
 
           {/* JSON Config Section */}
-          <div className="space-y-2 flex-1 flex flex-col min-h-[300px]">
+          <div className="space-y-2">
             <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               完整的 JSON 配置
             </Label>
             <Textarea
               value={jsonConfig}
               onChange={(e) => setJsonConfig(e.target.value)}
-              className="font-mono text-sm flex-1 bg-muted/50 resize-none p-4"
+              className="font-mono text-sm bg-muted/50 resize-none p-4 h-[350px]"
               spellCheck={false}
             />
           </div>
         </div>
-        <DialogFooter className="px-6 py-4 border-t flex-shrink-0">
+        <DialogFooter className="px-6 py-4 border-t">
           <Button variant="outline" onClick={onClose}>
             {t("common.cancel", "取消")}
           </Button>
           <Button
+            variant="outline"
             onClick={() => {
               try {
                 const parsed = JSON.parse(jsonConfig);
