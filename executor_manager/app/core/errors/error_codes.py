@@ -21,7 +21,7 @@ class ErrorCode(Enum):
     EXTERNAL_SERVICE_ERROR = (50201, "External service error")
     ENV_VAR_NOT_FOUND = (40001, "Environment variable not found")
     MCP_SERVER_NOT_FOUND = (40002, "MCP server not found")
-    SKILL_PRESET_NOT_FOUND = (40003, "Skill preset not found")
+    SKILL_NOT_FOUND = (40003, "Skill not found")
     SKILL_DOWNLOAD_FAILED = (40004, "Skill download failed")
 
     WORKSPACE_NOT_FOUND = (22001, "Workspace not found")

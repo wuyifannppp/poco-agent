@@ -1,5 +1,4 @@
 import re
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.core.errors.error_codes import ErrorCode
@@ -47,15 +46,14 @@ def _resolve_env_value(value: Any, env_map: dict[str, str]) -> Any:
 class ConfigResolver:
     def __init__(self, backend_client: BackendClient | None = None) -> None:
         self.backend_client = backend_client or BackendClient()
-        self._cache_until: datetime | None = None
-        self._skill_presets: dict[str, dict] = {}
 
     async def resolve(self, user_id: str, config_snapshot: dict) -> dict:
-        await self._ensure_cache()
         env_map = await self._get_env_map(user_id)
 
         mcp_config = await self._resolve_effective_mcp_config(user_id, config_snapshot)
-        skill_files = config_snapshot.get("skill_files") or {}
+        skill_files = await self._resolve_effective_skill_files(
+            user_id, config_snapshot
+        )
         input_files = config_snapshot.get("input_files") or []
 
         resolved_mcp = self._resolve_mcp(mcp_config, env_map)
@@ -67,16 +65,6 @@ class ConfigResolver:
         resolved["skill_files"] = resolved_skills
         resolved["input_files"] = resolved_inputs
         return resolved
-
-    async def _ensure_cache(self) -> None:
-        now = datetime.now(timezone.utc)
-        if self._cache_until and now < self._cache_until:
-            return
-        skill_presets = await self.backend_client.list_skill_presets(
-            include_inactive=True
-        )
-        self._skill_presets = {p["name"]: p for p in skill_presets}
-        self._cache_until = now + timedelta(seconds=60)
 
     async def _get_env_map(self, user_id: str) -> dict[str, str]:
         return await self.backend_client.get_env_map(user_id=user_id)
@@ -91,16 +79,14 @@ class ConfigResolver:
         2) config_snapshot.mcp_config toggles (server_id -> bool) -> fetch via backend internal API
         3) legacy config_snapshot.mcp_config already contains full server configs
         """
-        server_ids = self._normalize_mcp_server_ids(
-            config_snapshot.get("mcp_server_ids")
-        )
+        server_ids = self._normalize_ids(config_snapshot.get("mcp_server_ids"))
         if server_ids:
             return await self.backend_client.resolve_mcp_config(
                 user_id=user_id, server_ids=server_ids
             )
 
         mcp_config = config_snapshot.get("mcp_config")
-        toggle_ids = self._extract_enabled_server_ids_from_toggles(mcp_config)
+        toggle_ids = self._extract_enabled_ids_from_toggles(mcp_config)
         if toggle_ids is not None:
             return await self.backend_client.resolve_mcp_config(
                 user_id=user_id, server_ids=toggle_ids
@@ -108,8 +94,26 @@ class ConfigResolver:
 
         return mcp_config if isinstance(mcp_config, dict) else {}
 
+    async def _resolve_effective_skill_files(
+        self, user_id: str, config_snapshot: dict
+    ) -> dict:
+        """Resolve skills for execution.
+
+        Priority:
+        1) config_snapshot.skill_ids -> fetch entries via backend internal API
+        2) legacy config_snapshot.skill_files already contains entry configs
+        """
+        skill_ids = self._normalize_ids(config_snapshot.get("skill_ids"))
+        if skill_ids:
+            return await self.backend_client.resolve_skill_config(
+                user_id=user_id, skill_ids=skill_ids
+            )
+
+        legacy = config_snapshot.get("skill_files")
+        return legacy if isinstance(legacy, dict) else {}
+
     @staticmethod
-    def _normalize_mcp_server_ids(value: Any) -> list[int]:
+    def _normalize_ids(value: Any) -> list[int]:
         if not isinstance(value, list):
             return []
         result: list[int] = []
@@ -135,8 +139,8 @@ class ConfigResolver:
         return result
 
     @staticmethod
-    def _extract_enabled_server_ids_from_toggles(value: Any) -> list[int] | None:
-        """Convert {server_id: bool} toggles into enabled server id list.
+    def _extract_enabled_ids_from_toggles(value: Any) -> list[int] | None:
+        """Convert {id: bool} toggles into enabled id list.
 
         Returns None when the value does not look like toggles.
         """
@@ -166,7 +170,8 @@ class ConfigResolver:
             ids.append(sid)
         return ids
 
-    def _resolve_mcp(self, mcp_config: dict, env_map: dict[str, str]) -> dict:
+    @staticmethod
+    def _resolve_mcp(mcp_config: dict, env_map: dict[str, str]) -> dict:
         resolved: dict = {}
         for name, config in mcp_config.items():
             if not isinstance(config, dict):
@@ -175,29 +180,14 @@ class ConfigResolver:
             resolved[name] = _resolve_env_value(config, env_map)
         return resolved
 
-    def _resolve_skills(self, skills: dict, env_map: dict[str, str]) -> dict:
+    @staticmethod
+    def _resolve_skills(skills: dict, env_map: dict[str, str]) -> dict:
         resolved: dict = {}
-        for name, config in skills.items():
+        for name, config in (skills or {}).items():
             if not isinstance(config, dict):
                 continue
             if config.get("enabled") is False:
                 resolved[name] = {"enabled": False}
                 continue
-            ref = config.get("$ref")
-            if ref:
-                preset_name = ref.split(":", 1)[-1]
-                preset = self._skill_presets.get(preset_name)
-                if not preset or not preset.get("is_active", True):
-                    raise AppException(
-                        error_code=ErrorCode.SKILL_PRESET_NOT_FOUND,
-                        message=f"Skill preset not found: {preset_name}",
-                    )
-                base = {"enabled": True, "entry": preset.get("entry")}
-                default_config = preset.get("default_config") or {}
-                base["config"] = default_config
-                override = {k: v for k, v in config.items() if k != "$ref"}
-                base.update(override)
-                resolved[name] = _resolve_env_value(base, env_map)
-            else:
-                resolved[name] = _resolve_env_value(config, env_map)
+            resolved[name] = _resolve_env_value(config, env_map)
         return resolved

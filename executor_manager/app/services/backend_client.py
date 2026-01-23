@@ -133,16 +133,21 @@ class BackendClient:
             data = response.json()
             return data.get("data", {}) or {}
 
-    async def list_skill_presets(self, include_inactive: bool = False) -> list[dict]:
+    async def resolve_skill_config(self, user_id: str, skill_ids: list[int]) -> dict:
+        """Resolve effective skill config for execution based on selected skill ids."""
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/api/v1/skill-presets",
-                params={"include_inactive": str(include_inactive).lower()},
-                headers=self._trace_headers(),
+            response = await client.post(
+                f"{self.base_url}/api/v1/internal/skill-config/resolve",
+                json={"skill_ids": skill_ids},
+                headers={
+                    "X-Internal-Token": self.settings.internal_api_token,
+                    "X-User-Id": user_id,
+                    **self._trace_headers(),
+                },
             )
             response.raise_for_status()
             data = response.json()
-            return data.get("data", [])
+            return data.get("data", {}) or {}
 
     async def create_user_input_request(self, payload: dict) -> dict:
         async with httpx.AsyncClient() as client:
