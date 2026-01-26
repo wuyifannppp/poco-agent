@@ -10,6 +10,8 @@ export const API_ENDPOINTS = {
   session: (sessionId: string) => `/sessions/${sessionId}`,
   sessionState: (sessionId: string) => `/sessions/${sessionId}/state`,
   sessionMessages: (sessionId: string) => `/sessions/${sessionId}/messages`,
+  sessionMessagesWithFiles: (sessionId: string) =>
+    `/sessions/${sessionId}/messages-with-files`,
   sessionToolExecutions: (sessionId: string) =>
     `/sessions/${sessionId}/tool-executions`,
   sessionUsage: (sessionId: string) => `/sessions/${sessionId}/usage`,

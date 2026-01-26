@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_user_id, get_db
 from app.core.errors.error_codes import ErrorCode
 from app.core.errors.exceptions import AppException
-from app.schemas.message import MessageResponse
+from app.schemas.message import MessageResponse, MessageWithFilesResponse
 from app.schemas.response import Response, ResponseSchema
 from app.schemas.session import (
     SessionCreateRequest,
@@ -167,6 +167,30 @@ async def get_session_messages(
     messages = message_service.get_messages(db, session_id)
     return Response.success(
         data=[MessageResponse.model_validate(m) for m in messages],
+        message="Messages retrieved successfully",
+    )
+
+
+@router.get(
+    "/{session_id}/messages-with-files",
+    response_model=ResponseSchema[list[MessageWithFilesResponse]],
+)
+async def get_session_messages_with_files(
+    session_id: uuid.UUID,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
+    """Gets all messages for a session with per-message attachments."""
+    db_session = session_service.get_session(db, session_id)
+    if db_session.user_id != user_id:
+        raise AppException(
+            error_code=ErrorCode.FORBIDDEN,
+            message="Session does not belong to the user",
+        )
+
+    messages = message_service.get_messages_with_files(db, session_id, user_id=user_id)
+    return Response.success(
+        data=messages,
         message="Messages retrieved successfully",
     )
 

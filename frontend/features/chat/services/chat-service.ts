@@ -206,10 +206,11 @@ export const chatService = {
           id: number;
           role: string;
           content: Record<string, unknown>;
+          attachments?: InputFile[];
           created_at: string;
           updated_at: string;
         }[]
-      >(API_ENDPOINTS.sessionMessages(sessionId));
+      >(API_ENDPOINTS.sessionMessagesWithFiles(sessionId));
 
       const processedMessages: ChatMessage[] = [];
       let currentAssistantMessage: ChatMessage | null = null;
@@ -305,6 +306,7 @@ export const chatService = {
               content: textContent,
               status: "completed",
               timestamp: msg.created_at,
+              attachments: msg.attachments,
             });
           } else {
             if (currentAssistantMessage) {

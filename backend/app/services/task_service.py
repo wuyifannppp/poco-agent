@@ -140,6 +140,14 @@ class TaskService:
         )
         db.flush()
 
+        # Keep session-level config snapshots free of input_files.
+        # input_files are treated as per-run inputs and stored only in the run snapshot.
+        run_config_snapshot = dict(merged_config or {})
+        if request.config is not None and request.config.input_files:
+            run_config_snapshot["input_files"] = [
+                f.model_dump(mode="json") for f in request.config.input_files
+            ]
+
         schedule_mode, scheduled_at = self._resolve_schedule(request)
 
         db_run = RunRepository.create(
@@ -148,7 +156,7 @@ class TaskService:
             user_message_id=db_message.id,
             schedule_mode=schedule_mode,
             scheduled_at=scheduled_at,
-            config_snapshot=merged_config,
+            config_snapshot=run_config_snapshot,
         )
 
         db_session.status = "pending"
@@ -177,6 +185,8 @@ class TaskService:
         merged_base.pop("mcp_config", None)
         # Legacy field (no longer used after switching to skill_ids).
         merged_base.pop("skill_files", None)
+        # input_files are treated as per-run inputs and should not be persisted into the session-level config snapshot.
+        merged_base.pop("input_files", None)
 
         base_mcp_server_ids = self._normalize_mcp_server_ids(
             merged_base.get("mcp_server_ids")
@@ -189,6 +199,8 @@ class TaskService:
             # Only merge fields explicitly provided by the caller to avoid
             # overriding existing session config with schema defaults.
             request_config = task_config.model_dump(exclude_unset=True)
+            # input_files are per-run and should not be merged into session config.
+            request_config.pop("input_files", None)
             # Extract mcp_config toggles before merging (don't merge as dict)
             mcp_toggles = request_config.pop("mcp_config", None)
             # Extract skill_config toggles before merging (don't merge as dict)
