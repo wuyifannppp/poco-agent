@@ -77,11 +77,27 @@ export const API_ENDPOINTS = {
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+function normalizeBaseUrl(baseUrl: string): string {
+  return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+}
+
 export function getApiBaseUrl() {
-  if (!API_BASE_URL) {
-    throw new ApiError("API base URL is not configured", 500);
+  // Browser: prefer an explicit public API URL (build-time), otherwise use same-origin proxy.
+  if (typeof window !== "undefined") {
+    if (!API_BASE_URL) return "";
+    return normalizeBaseUrl(API_BASE_URL);
   }
-  return API_BASE_URL.endsWith("/") ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+
+  // Server: relative URLs are not supported by Node.js fetch. Prefer a runtime internal URL.
+  const serverBaseUrl =
+    process.env.BACKEND_URL || process.env.POCO_BACKEND_URL || API_BASE_URL;
+  if (!serverBaseUrl) {
+    throw new ApiError(
+      "API base URL is not configured (set BACKEND_URL for server-side calls)",
+      500,
+    );
+  }
+  return normalizeBaseUrl(serverBaseUrl);
 }
 
 async function resolveAuthToken(): Promise<string | null> {

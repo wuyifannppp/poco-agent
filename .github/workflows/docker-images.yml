@@ -2,11 +2,6 @@ name: docker-images
 
 on:
   workflow_dispatch:
-    inputs:
-      frontend_api_url:
-        description: "Build-time NEXT_PUBLIC_API_URL for frontend (e.g. https://api.example.com)"
-        required: false
-        default: "http://localhost:8000"
   push:
     tags:
       - "v*"
@@ -59,20 +54,6 @@ jobs:
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Resolve frontend build args
-        id: frontend_args
-        if: matrix.name == 'frontend'
-        run: |
-          api_url="${{ github.event.inputs.frontend_api_url }}"
-          if [ -z "$api_url" ]; then
-            api_url="${{ vars.NEXT_PUBLIC_API_URL }}"
-          fi
-          if [ -z "$api_url" ]; then
-            api_url="http://localhost:8000"
-          fi
-
-          echo "api_url=$api_url" >> "$GITHUB_OUTPUT"
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
@@ -86,6 +67,5 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             APP_UID=1000
-            NEXT_PUBLIC_API_URL=${{ steps.frontend_args.outputs.api_url }}
             NEXT_PUBLIC_SESSION_POLLING_INTERVAL=2500
             NEXT_PUBLIC_MESSAGE_POLLING_INTERVAL=2500

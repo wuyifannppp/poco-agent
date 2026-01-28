@@ -5,7 +5,7 @@
 ## 触发方式
 
 - 推送 tag：`v*`（例如 `v0.1.0`）
-- 或手动触发：GitHub -> Actions -> `docker-images` -> Run workflow（可指定前端的 `NEXT_PUBLIC_API_URL`）
+- 或手动触发：GitHub -> Actions -> `docker-images` -> Run workflow
 
 ## 产物镜像
 
@@ -22,14 +22,15 @@ tag 策略：
 - `sha-<commit>`（每次构建）
 - `vX.Y.Z`（当触发来源是 tag）
 
-## 前端 API URL（构建期变量）
+## 前端后端地址（运行时变量，推荐）
 
-Frontend 的 `NEXT_PUBLIC_API_URL` 是 **build-time** 变量（Next.js 会内联到产物）。
+Frontend 默认通过 Next.js 的同源 API 代理（`/api/v1/* -> Backend`）访问后端，因此后端地址可以在 **运行时（runtime）** 配置：
 
-建议：
+- `BACKEND_URL`：Next.js 服务器侧用于转发 `/api/v1/*` 的 Backend base URL（例如 `http://backend:8000`；兼容旧变量：`POCO_BACKEND_URL`）
 
-- 在仓库 Settings -> Variables 配置 `NEXT_PUBLIC_API_URL`（用于 tag 构建）
-- 或手动触发 workflow 时填入 `frontend_api_url`
+这样发布到 GHCR 的前端镜像可以做到“一个镜像适配不同部署环境”，无需为了不同后端地址重复构建。
+
+> 仍可选用 `NEXT_PUBLIC_API_URL`（构建期变量）让浏览器直连后端，但这会被 Next.js 内联到产物，不利于复用镜像。
 
 ## 用发布镜像启动
 

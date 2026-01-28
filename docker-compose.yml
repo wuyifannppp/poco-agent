@@ -116,7 +116,7 @@ services:
       HOST: 0.0.0.0
       PORT: 8001
 
-      BACKEND_URL: http://backend:8000
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
       # Must be reachable from *executor containers* spawned by the manager.
       CALLBACK_BASE_URL: ${CALLBACK_BASE_URL:-http://host.docker.internal:8001}
       CALLBACK_TOKEN: ${CALLBACK_TOKEN:-change-this-token-in-production}
@@ -198,13 +198,15 @@ services:
       context: .
       dockerfile: docker/frontend/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
         NEXT_PUBLIC_SESSION_POLLING_INTERVAL: ${NEXT_PUBLIC_SESSION_POLLING_INTERVAL:-2500}
         NEXT_PUBLIC_MESSAGE_POLLING_INTERVAL: ${NEXT_PUBLIC_MESSAGE_POLLING_INTERVAL:-2500}
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_started
+    environment:
+      # Runtime backend URL for the Next.js API proxy (/api/v1/* -> backend).
+      BACKEND_URL: ${BACKEND_URL:-http://backend:8000}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
 
